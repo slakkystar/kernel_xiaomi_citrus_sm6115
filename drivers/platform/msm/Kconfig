@@ -106,6 +106,12 @@ config DISABLE_IPA_WAKELOCKS
 	help
 	  Disables the wakelocks created by ipa driver in order to save power
 
+config IPA_WAKELOCK
+	bool
+	default n
+	help
+	  Allow IPA to acquire wakelocks.
+
 config RMNET_IPA
 	tristate "IPA RMNET WWAN Network Device"
 	depends on IPA && QCOM_QMI_HELPERS

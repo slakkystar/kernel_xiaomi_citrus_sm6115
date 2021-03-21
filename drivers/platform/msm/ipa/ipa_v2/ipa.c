@@ -3364,6 +3364,7 @@ void ipa2_dec_client_disable_clks(struct ipa_active_client_logging_info *id)
 }
 
 #ifndef CONFIG_DISABLE_IPA_WAKELOCKS
+#ifdef CONFIG_IPA_WAKELOCK
 /**
  * ipa_inc_acquire_wakelock() - Increase active clients counter, and
  * acquire wakelock if necessary
@@ -3407,6 +3408,9 @@ void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client)
 		ipa_ctx->wakelock_ref_cnt.cnt, ref_client);
 	spin_unlock_irqrestore(&ipa_ctx->wakelock_ref_cnt.spinlock, flags);
 }
+#else
+void ipa_inc_acquire_wakelock(enum ipa_wakelock_ref_client ref_client) {}
+void ipa_dec_release_wakelock(enum ipa_wakelock_ref_client ref_client) {}
 #endif
 
 static int ipa_setup_bam_cfg(const struct ipa_plat_drv_res *res)
