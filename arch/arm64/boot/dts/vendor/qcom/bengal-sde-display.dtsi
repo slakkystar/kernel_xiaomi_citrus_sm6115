@@ -139,7 +139,6 @@
 	msm_notifier: qcom,msm_notifier@0 {
 		compatible = "qcom,msm-notifier";
 		panel = <&dsi_td4330_truly_v2_video &dsi_ft8719_truly_v2_video &dsi_nt36672d_tianma_v2_video &dsi_nt36672d_xinli_v2_video>;
-
 	};
 };
 
