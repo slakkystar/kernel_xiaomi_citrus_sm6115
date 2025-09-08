@@ -280,8 +280,6 @@ static int teo_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 	int idx0 = 0, idx = -1;
 	int i;
 	int duration_us;
-	bool alt_intercepts, alt_recent;
-	bool cpu_utilized;
 
 	if (dev->last_state_idx >= 0) {
 		teo_update(drv, dev);
