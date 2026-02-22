@@ -12,8 +12,7 @@
 
 &mdss_mdp {
 	dsi_nt36672a_tianma_video: qcom,mdss_dsi_nt36672a_tianma_video {
-		qcom,mdss-dsi-panel-name =
-				"nt36672a tianma fhd plus video mode dsi panel";
+		qcom,mdss-dsi-panel-name = "nt36672a tianma fhd plus video mode dsi panel";
 		qcom,mdss-dsi-panel-type = "dsi_video_mode";
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
@@ -42,31 +41,43 @@
 		qcom,mdss-dsi-reset-sequence = <1 10>, <0 10>, <1 10>;
 		qcom,mdss-pan-physical-width-dimension = <69>;
 		qcom,mdss-pan-physical-height-dimension = <150>;
+		qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
+		qcom,bl-pmic-pwm-period-usecs = <100>;
+		qcom,mdss-dsi-bl-min-level = <1>;
+		qcom,mdss-dsi-bl-max-level = <4095>;
+		qcom,mdss-dsi-t-clk-post = <0x0f>;
+		qcom,mdss-dsi-t-clk-pre = <0x37>;
+
 		qcom,mdss-dsi-display-timings {
-            timing@0 {
-		        qcom,mdss-dsi-panel-width = <1080>;
-		        qcom,mdss-dsi-panel-height = <2340>;
-		        qcom,mdss-dsi-h-front-porch = <25>;
-		        qcom,mdss-dsi-h-back-porch = <25>;
-		        qcom,mdss-dsi-h-pulse-width = <14>;
-		        qcom,mdss-dsi-h-sync-skew = <0>;
-		        qcom,mdss-dsi-v-back-porch = <10>;
-		        qcom,mdss-dsi-v-front-porch = <10>;
-		        qcom,mdss-dsi-v-pulse-width = <2>;
-		        qcom,mdss-dsi-panel-framerate = <60>;
+			timing@0 {
+				qcom,mdss-dsi-panel-width = <1080>;
+				qcom,mdss-dsi-panel-height = <2340>;
+				qcom,mdss-dsi-h-front-porch = <25>;
+				qcom,mdss-dsi-h-back-porch = <25>;
+				qcom,mdss-dsi-h-pulse-width = <14>;
+				qcom,mdss-dsi-h-sync-skew = <0>;
+				qcom,mdss-dsi-v-back-porch = <10>;
+				qcom,mdss-dsi-v-front-porch = <10>;
+				qcom,mdss-dsi-v-pulse-width = <2>;
+				qcom,mdss-dsi-panel-framerate = <60>;
 				qcom,mdss-dsi-on-command = [
 					05 01 00 00 78 00 02 11 00
-					15 01 00 00 00 00 02 FF F0
-					15 01 00 00 00 00 02 FB 01
-					15 01 00 00 00 00 02 A2 00
-					15 01 00 00 00 00 02 FF 10
+					15 01 00 00 00 00 02 ff f0
+					15 01 00 00 00 00 02 fb 01
+					15 01 00 00 00 00 02 a2 00
+					15 01 00 00 00 00 02 ff 10
 					15 01 00 00 00 00 02 35 00
-					05 01 00 00 14 00 02 29 00 ];
+					05 01 00 00 14 00 02 29 00
+				];
 				qcom,mdss-dsi-off-command = [
 					05 01 00 00 14 00 02 28 00
-					05 01 00 00 78 00 02 10 00];
-			qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
-			qcom,mdss-dsi-off-command-state = "dsi_lp_mode";
+					05 01 00 00 78 00 02 10 00
+				];
+				qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
+				qcom,mdss-dsi-off-command-state = "dsi_lp_mode";
+				qcom,mdss-dsi-panel-phy-timings = <0x2621090b 0x60204a0 0x2621090b 0x60204a0 0x2621090b 0x60204a0 0x2621090b 0x60204a0 0x26200a0b 0x60204a0>;
+				qcom,display-topology = <1 0 1>;
+				qcom,default-topology-index = <0>;
 			};
 		};
 	};

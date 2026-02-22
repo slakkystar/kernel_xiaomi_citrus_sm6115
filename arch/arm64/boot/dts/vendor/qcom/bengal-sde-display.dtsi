@@ -127,8 +127,13 @@
 		ibb-supply = <&lcdb_ncp_vreg>;
 		qcom,mdp = <&mdss_mdp>;
 
-		qcom,dsi-default-panel =
-			<&dsi_td4330_truly_v2_video &dsi_ft8719_truly_v2_video &dsi_ft8720m_xinli_v2_video &dsi_nt36672d_tianma_v2_video &dsi_nt36672a_truly_v2_video &dsi_nt36672d_xinli_v2_video>;
+		qcom,dsi-default-panel = <&dsi_td4330_truly_v2_video
+					  &dsi_ft8719_truly_v2_video
+					  &dsi_ft8720m_xinli_v2_video
+					  &dsi_nt36672d_tianma_v2_video
+					  &dsi_nt36672a_truly_v2_video
+					  &dsi_nt36672d_xinli_v2_video
+					  &dsi_nt36672a_tianma_video>;
 	};
 
 	sde_wb: qcom,wb-display@0 {
@@ -185,7 +190,6 @@
 	};
 };
 
-
 &dsi_ft8719_truly_v2_video {
 	qcom,esd-check-enabled;
 	qcom,mdss-dsi-panel-status-check-mode = "reg_read";
@@ -203,7 +207,6 @@
 	qcom,dsi-select-clocks = "mux_byte_clk0", "mux_pixel_clk0",
 				"src_byte_clk0", "src_pixel_clk0",
 				"shadow_byte_clk0", "shadow_pixel_clk0";
-	//qcom,dsi-dyn-clk-enable;
 	qcom,dsi-dyn-clk-list =
 		<976190400 988392784 984325320 980257864>;
 	qcom,dsi-dyn-clk-type = "constant-fps-adjust-vfp";
@@ -276,37 +279,6 @@
 				26 20 09 0A 06 02 04 A0 
 				26 20 09 0A 06 02 04 A0 
 				26 1F 09 0A 06 02 04 A0];
-			qcom,display-topology = <1 0 1>;
-			qcom,default-topology-index = <0>;
-		};
-	};
-};
-
-//chenwenmin
-&dsi_nt36672a_tianma_video {
-	qcom,panel-supply-entries = <&dsi_panel_pwr_supply>;
-	//qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_wled";
- 	//qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_pwm";
- 	//pwms = <&pm6125_pwm 0 0>;
- 	qcom,bl-pmic-pwm-period-usecs = <100>;
-	qcom,mdss-dsi-bl-min-level = <1>;
-	qcom,mdss-dsi-bl-max-level = <4095>;
-	//qcom,platform-reset-gpio = <85>;
-	//qcom,platform-reset-gpio = <&tlmm 85 0>;
-	//qcom,platform-bklight-en-gpio = <&tlmm 99 0>;
- 	//qcom,platform-bklight-en-gpio = <&pm6125_pwm 99 0>;
-	//qcom,platform-te-gpio = <&tlmm 95 0>;
-	qcom,mdss-dsi-t-clk-post = <0x0F>;
-	qcom,mdss-dsi-t-clk-pre = <0x37>;
-	qcom,mdss-dsi-display-timings {
-		timing@0{
-			qcom,mdss-dsi-panel-phy-timings =
-				[26 21 09 0B 06 02 04 a0
-				26 21 09 0B 06 02 04 a0
-				26 21 09 0B 06 02 04 a0
-				26 21 09 0B 06 02 04 a0
-				26 20 0A 0B 06 02 04 a0];
-
 			qcom,display-topology = <1 0 1>;
 			qcom,default-topology-index = <0>;
 		};
