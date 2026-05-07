@@ -253,17 +253,18 @@ static ssize_t status_show(struct kobject *kobj, struct kobj_attribute *attr,
 	len += scnprintf(&buf[len], PAGE_SIZE - len,
 			"[%d : %d]\n", used_slots, free_slots);
 
-	/* Convert byte to Kb */
-	if (tsize)
-		tsize = tsize / 1024;
-	if (tused)
-		tused = tused / 1024;
-		len += scnprintf(&buf[len], PAGE_SIZE - len,
-				"\nMemory Status:\nTotal Memory: %dKb\n",
-				tsize);
-		len += scnprintf(&buf[len], PAGE_SIZE - len,
-				"Used: %dKb\nFree: %dKb\n", tused,
-				tsize - tused);
+    /* Convert byte to Kb */
+    if (tsize)
+        tsize = tsize / 1024;
+    if (tused) {
+        tused = tused / 1024;
+    }
+    len += scnprintf(&buf[len], PAGE_SIZE - len,
+            "\nMemory Status:\nTotal Memory: %dKb\n",
+            tsize);
+    len += scnprintf(&buf[len], PAGE_SIZE - len,
+            "Used: %dKb\nFree: %dKb\n", tused,
+            tsize - tused);
 
 	return len;
 }
