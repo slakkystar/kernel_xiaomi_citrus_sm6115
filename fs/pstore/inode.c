@@ -46,7 +46,8 @@ static DEFINE_MUTEX(records_list_lock);
 static LIST_HEAD(records_list);
 
 static DEFINE_MUTEX(pstore_sb_lock);
-static struct super_block *pstore_sb;
+struct super_block *pstore_sb;
+EXPORT_SYMBOL_GPL(pstore_sb);
 
 struct pstore_private {
 	struct list_head list;
