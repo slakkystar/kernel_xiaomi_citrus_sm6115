@@ -1775,9 +1775,15 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 
 	NVT_LOG("start\n");
 #ifdef __DRM_PANEL_H__
-	if (check_dt(dp)) {
-		NVT_ERR("%s: %s not actived\n", __func__, dp->name);
-		return -ENODEV;
+	ret = check_dt(dp);
+	if (ret) {
+		if (ret == -EPROBE_DEFER) {
+			NVT_LOG("Panel not ready, deferred probe\n");
+			return -EPROBE_DEFER;
+		} else {
+			NVT_ERR("%s: %s not actived\n", __func__, dp->name);
+			return -ENODEV;
+		}
 	}
 	NVT_LOG("---active_panel=%s", active_panel->dev->of_node->name);
 
@@ -2508,7 +2514,8 @@ static int check_dt(struct device_node *np)
 	int count = 0;
 	struct device_node *node = NULL;
 	struct drm_panel *panel = NULL;
-//	int itrycount = 0;
+	int retry_count = 0;
+	const int max_retry = 20; // 20 * 500ms = 10 detik
 
 	NVT_LOG("chenwenmin  \n");
 
@@ -2519,30 +2526,30 @@ static int check_dt(struct device_node *np)
 		return -ENODEV;
 	}
 
-	for (i = 0; i < count; i++) {
-		node = of_parse_phandle(np, "panel", i);
-		NVT_LOG("chenwenmin node=%p name=%s\n", node, node->name);
-		panel = of_drm_find_panel(node);
-		of_node_put(node);
-		NVT_LOG("chenwenmin IS_ERR(panel)=%d \n", IS_ERR(panel));
-		NVT_LOG("chenwenmin panel=%p \n", panel);
-		if (!IS_ERR(panel)) {
-			NVT_LOG("chenwenmin  find drm_panel successfully\n");
-			active_panel = panel;
-			return 0;
+	while (retry_count < max_retry) {
+		for (i = 0; i < count; i++) {
+			node = of_parse_phandle(np, "panel", i);
+			if (!node)
+				continue;
+			NVT_LOG("chenwenmin node=%p name=%s\n", node, node->name);
+			panel = of_drm_find_panel(node);
+			of_node_put(node);
+			NVT_LOG("chenwenmin IS_ERR(panel)=%ld\n", IS_ERR(panel));
+			NVT_LOG("chenwenmin panel=%p\n", panel);
+			if (!IS_ERR(panel)) {
+				NVT_LOG("chenwenmin  find drm_panel successfully\n");
+				active_panel = panel;
+				return 0;
+			}
 		}
-/*
-		itrycount++;
-		if (itrycount < 20) {
-			NVT_LOG("chenwenmin itrycount=%d \n", itrycount);
-			i = -1;
+		retry_count++;
+		if (retry_count < max_retry) {
+			NVT_LOG("chenwenmin panel not ready, retry %d/%d\n", retry_count, max_retry);
 			msleep(500);
-			continue;
 		}
-*/
 	}
-        NVT_LOG("chenwenmin no find drm_panel");
-	return -ENODEV;
+	NVT_LOG("chenwenmin no drm_panel after retries, defer probe\n");
+	return -EPROBE_DEFER;
 }
 
 static int nvt_drm_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
