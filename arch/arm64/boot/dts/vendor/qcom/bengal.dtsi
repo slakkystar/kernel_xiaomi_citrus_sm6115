@@ -434,7 +434,7 @@
 	};
 
 	chosen {
-		bootargs = "rcu_nocbs=0-3 noirqdebug kpti=off noirqdebug quiet";
+		bootargs = "rcu_nocbs=0-3 noirqdebug kpti=off quiet";
 	};
 
 	soc: soc { };
