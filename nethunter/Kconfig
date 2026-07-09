@@ -379,8 +379,6 @@ config NETHUNTER_WIFI_DRIVERS_SUPPORT
 
 	select WLAN_VENDOR_ATH
 
-	select ATH9K_HTC
-
 	select CARL9170
 
 	select ATH6KL
