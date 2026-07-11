@@ -4,7 +4,7 @@ qcom,4681124_Huaqin_J19S-M_6000mAH_PMI632 {
     /* 4681124_Huaqin_J19S-M_6000mAH_PMI632_averaged_MasterSlave_Aug12th2020 */
     qcom,max-voltage-uv = <4450000>;
     qcom,fg-cc-cv-threshold-uv = <4440000>;
-    qcom,fastchg-current-ma = <3000>;
+    qcom,fastchg-current-ma = <3300>;
     qcom,batt-id-kohm = <330>;
     qcom,battery-beta = <4250>;
     qcom,battery-therm-kohm = <100>;
@@ -14,8 +14,9 @@ qcom,4681124_Huaqin_J19S-M_6000mAH_PMI632 {
 	qcom,jeita-fcc-ranges = <(-100) 0 0
 				0  50    580000
 				51  100  1700000
-				101 450  3000000
-				451 600  3000000>;
+				101 400  3300000
+                401 450  3000000
+                451 600  3000000>;
 	qcom,jeita-fv-ranges = <0   450   4450000
 				451 600  4100000>;
 	qcom,step-chg-ranges = <3600000  3800000  4500000

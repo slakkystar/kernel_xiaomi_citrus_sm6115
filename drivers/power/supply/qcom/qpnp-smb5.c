@@ -30,7 +30,7 @@ static struct smb_params smb5_pmi632_params = {
 		.name   = "fast charge current",
 		.reg    = CHGR_FAST_CHARGE_CURRENT_CFG_REG,
 		.min_u  = 0,
-		.max_u  = 3000000,
+		.max_u  = 3300000,
 		.step_u = 50000,
 	},
 	.fv			= {
@@ -44,21 +44,21 @@ static struct smb_params smb5_pmi632_params = {
 		.name   = "usb input current limit",
 		.reg    = USBIN_CURRENT_LIMIT_CFG_REG,
 		.min_u  = 0,
-		.max_u  = 3000000,
+		.max_u  = 3300000,
 		.step_u = 50000,
 	},
 	.icl_max_stat		= {
 		.name   = "dcdc icl max status",
 		.reg    = ICL_MAX_STATUS_REG,
 		.min_u  = 0,
-		.max_u  = 3000000,
+		.max_u  = 3300000,
 		.step_u = 50000,
 	},
 	.icl_stat		= {
 		.name   = "input current limit status",
 		.reg    = ICL_STATUS_REG,
 		.min_u  = 0,
-		.max_u  = 3000000,
+		.max_u  = 3300000,
 		.step_u = 50000,
 	},
 	.otg_cl			= {
@@ -299,7 +299,7 @@ static const struct clamp_config clamp_levels[] = {
 	{ {0x11C6, 0x11F9, 0x13F1}, {0x60, 0x2B, 0x9C} },
 };
 
-#define PMI632_MAX_ICL_UA	3000000
+#define PMI632_MAX_ICL_UA	3300000
 #define PM6150_MAX_FCC_UA	3000000
 static int smb5_chg_config_init(struct smb5 *chip)
 {
