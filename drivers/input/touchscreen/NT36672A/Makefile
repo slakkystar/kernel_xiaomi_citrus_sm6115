@@ -3,5 +3,6 @@
 #
 
 # Each configuration option enables a list of files.
+ccflags-y += $(DISABLE_LTO_CLANG) $(DISABLE_CFI_CLANG) -fno-data-sections -fno-function-sections
 
 obj-$(CONFIG_TOUCHSCREEN_NT36672A) += nt36xxx.o nt36xxx_fw_update.o nt36xxx_ext_proc.o nt36xxx_mp_ctrlram.o
