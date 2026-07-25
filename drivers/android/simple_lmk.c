@@ -74,6 +74,23 @@ static unsigned long get_total_mm_pages(struct mm_struct *mm)
 	return pages;
 }
 
+static bool is_protected_process(struct task_struct *tsk)
+{
+	static const char * const protected_names[] = {
+		"system_server", "surfaceflinger", "zygote", "init", NULL
+	};
+	const char * const *name;
+
+	if (tsk->pid == 1)
+		return true;
+
+	for (name = protected_names; *name; name++) {
+		if (!strcmp(tsk->comm, *name))
+			return true;
+	}
+	return false;
+}
+
 static unsigned long find_victims(int *vindex)
 {
 	short i, min_adj = SHRT_MAX, max_adj = 0;
@@ -97,7 +114,8 @@ static unsigned long find_victims(int *vindex)
 		adj = READ_ONCE(sig->oom_score_adj);
 		if (adj < 0 ||
 		    sig->flags & (SIGNAL_GROUP_EXIT | SIGNAL_GROUP_COREDUMP) ||
-		    (thread_group_empty(tsk) && tsk->flags & PF_EXITING))
+		    (thread_group_empty(tsk) && tsk->flags & PF_EXITING) ||
+		    is_protected_process(tsk))
 			continue;
 
 		/* Store the task in a linked-list bucket based on its adj */
@@ -134,7 +152,7 @@ static unsigned long find_victims(int *vindex)
 			/* Store this potential victim away for later */
 			victims[*vindex].tsk = vtsk;
 			victims[*vindex].mm = vtsk->mm;
-			victims[*vindex].size = get_total_mm_pages(vtsk->mm);
+			victims[*vindex].size = get_mm_counter(vtsk->mm, MM_ANONPAGES);
 
 			/* Count the number of pages that have been found */
 			pages_found += victims[*vindex].size;
@@ -152,8 +170,9 @@ static unsigned long find_victims(int *vindex)
 		 * Sort the victims in descending order of size to prioritize
 		 * killing the larger ones first.
 		 */
-		sort(&victims[old_vindex], *vindex - old_vindex,
-		     sizeof(*victims), victim_cmp, victim_swap);
+		if (*vindex - old_vindex > 5)
+			sort(&victims[old_vindex], *vindex - old_vindex,
+			     sizeof(*victims), victim_cmp, victim_swap);
 
 		/* Stop when we are out of space or have enough pages found */
 		if (*vindex == MAX_VICTIMS || pages_found >= MIN_FREE_PAGES) {
@@ -209,6 +228,21 @@ static void set_task_rt_prio(struct task_struct *tsk, int priority)
 #define SLEEP_DURATION_MS 28
 #endif
 
+static void adjust_params(void)
+{
+	struct sysinfo i;
+	si_meminfo(&i);
+	unsigned long total_mb = i.totalram >> (20 - PAGE_SHIFT);
+
+	if (total_mb <= 4096) {
+		slmk_minfree = clamp((int)(total_mb * 0.03), 64, 512);
+		slmk_timeout = 100;
+	} else {
+		slmk_minfree = clamp((int)(total_mb * 0.025), 80, 512);
+		slmk_timeout = 150;
+	}
+}
+
 static void scan_and_kill(void)
 {
 	int i, nr_to_kill, nr_found = 0;
@@ -223,6 +257,7 @@ static void scan_and_kill(void)
 	write_unlock(&mm_free_lock);
 
 	/* Populate the victims array with tasks sorted by adj and then size */
+	adjust_params();
 	pages_found = find_victims(&nr_found);
 	if (unlikely(!nr_found)) {
 		pr_err_ratelimited("No processes available to kill!\n");
@@ -240,8 +275,9 @@ static void scan_and_kill(void)
 		 * victims that have a lower adj can be killed in place of
 		 * smaller victims with a high adj.
 		 */
-		sort(victims, nr_to_kill, sizeof(*victims), victim_cmp,
-		     victim_swap);
+		if (nr_to_kill > 5)
+			sort(victims, nr_to_kill, sizeof(*victims), victim_cmp,
+			     victim_swap);
 
 		/* Second round of processing to finally select the victims */
 		nr_to_kill = process_victims(nr_to_kill);
@@ -312,23 +348,32 @@ static void scan_and_kill(void)
 	 * orders the needs_reap store before waitqueue_active().
 	 */
 	write_lock(&mm_free_lock);
-	sort(victims, nr_to_kill, sizeof(*victims), victim_cmp, victim_swap);
+	if (nr_to_kill > 5)
+		sort(victims, nr_to_kill, sizeof(*victims), victim_cmp, victim_swap);
 	atomic_set(&needs_reap, 1);
 	write_unlock(&mm_free_lock);
 	if (waitqueue_active(&reaper_waitq))
 		wake_up(&reaper_waitq);
 
 	/* Wait until all the victims die or until the timeout is reached */
-	if (!wait_for_completion_timeout(&reclaim_done, RECLAIM_EXPIRES))
-		pr_info("Timeout hit waiting for victims to die, proceeding\n");
-	else
-		msleep(SLEEP_DURATION_MS);
+	{
+		unsigned long timeout = jiffies + RECLAIM_EXPIRES;
+		while (time_before(jiffies, timeout)) {
+			if (atomic_read(&nr_killed) >= nr_to_kill)
+				break;
+			schedule_timeout_uninterruptible(HZ / 10);
+		}
+		if (atomic_read(&nr_killed) < nr_to_kill)
+			pr_warn("Timeout hit waiting for victims to die\n");
+		else
+			msleep(SLEEP_DURATION_MS);
+	}
 
 	/* Clean up for future reclaims but let the reaper thread keep going */
 	write_lock(&mm_free_lock);
 	reinit_completion(&reclaim_done);
 	reclaim_active = false;
-	nr_killed = (atomic_t)ATOMIC_INIT(0);
+	atomic_set(&nr_killed, 0);
 	write_unlock(&mm_free_lock);
 }
 
@@ -424,7 +469,7 @@ static void reap_victims(void)
 static int simple_lmk_reaper_thread(void *data)
 {
 	/* Use a lower priority than the reclaim thread */
-	set_task_rt_prio(current, MAX_RT_PRIO - 2);
+	set_user_nice(current, 19);
 	set_freezable();
 
 	while (1) {
@@ -505,14 +550,15 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 	}
 
 	si_meminfo(&i);
-	if (i.totalram << (PAGE_SHIFT-10) > 4096ull * 1024) {
-	  // 6GB variant
-	  slmk_minfree = 128;
-	  slmk_timeout = 150;
+	unsigned long total_mb = i.totalram >> (20 - PAGE_SHIFT);
+	if (total_mb <= 4096) {
+		slmk_minfree = clamp((int)(total_mb * 0.03), 64, 512);
+		slmk_timeout = 100;
+		slmk_vmpressure = 85;
 	} else {
-	  // 4GB variant
-	  slmk_minfree = 146;
-	  slmk_timeout = 100;
+		slmk_minfree = clamp((int)(total_mb * 0.025), 80, 512);
+		slmk_timeout = 150;
+		slmk_vmpressure = 92;
 	}
 
 	return 0;
