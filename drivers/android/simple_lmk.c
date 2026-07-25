@@ -235,10 +235,10 @@ static void adjust_params(void)
 	unsigned long total_mb = i.totalram >> (20 - PAGE_SHIFT);
 
 	if (total_mb <= 4096) {
-		slmk_minfree = clamp((int)(total_mb * 0.03), 64, 512);
+		slmk_minfree = clamp((total_mb * 3) / 100, 64UL, 512UL);
 		slmk_timeout = 100;
 	} else {
-		slmk_minfree = clamp((int)(total_mb * 0.025), 80, 512);
+		slmk_minfree = clamp((total_mb * 25) / 1000, 80UL, 512UL);
 		slmk_timeout = 150;
 	}
 }
@@ -552,11 +552,11 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 	si_meminfo(&i);
 	unsigned long total_mb = i.totalram >> (20 - PAGE_SHIFT);
 	if (total_mb <= 4096) {
-		slmk_minfree = clamp((int)(total_mb * 0.03), 64, 512);
+		slmk_minfree = clamp((total_mb * 3) / 100, 64UL, 512UL);
 		slmk_timeout = 100;
 		slmk_vmpressure = 85;
 	} else {
-		slmk_minfree = clamp((int)(total_mb * 0.025), 80, 512);
+		slmk_minfree = clamp((total_mb * 25) / 1000, 80UL, 512UL);
 		slmk_timeout = 150;
 		slmk_vmpressure = 92;
 	}
