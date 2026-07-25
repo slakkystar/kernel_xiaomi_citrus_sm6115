@@ -36,7 +36,9 @@ struct victim_info {
 };
 
 static struct victim_info victims[MAX_VICTIMS] __cacheline_aligned_in_smp;
-static struct task_struct *task_bucket[SHRT_MAX + 1] __cacheline_aligned;
+/* Use the actual range of oom_score_adj: -1000..1000 */
+#define LMK_ADJ_RANGE (OOM_SCORE_ADJ_MAX + 1)
+static struct task_struct *task_bucket[LMK_ADJ_RANGE] __cacheline_aligned;
 static DECLARE_WAIT_QUEUE_HEAD(oom_waitq);
 static DECLARE_WAIT_QUEUE_HEAD(reaper_waitq);
 static DECLARE_COMPLETION(reclaim_done);
@@ -257,7 +259,7 @@ static void scan_and_kill(void)
 	write_unlock(&mm_free_lock);
 
 	/* Populate the victims array with tasks sorted by adj and then size */
-	adjust_params();
+	/* Do NOT call adjust_params() here to avoid overriding user parameters */
 	pages_found = find_victims(&nr_found);
 	if (unlikely(!nr_found)) {
 		pr_err_ratelimited("No processes available to kill!\n");
@@ -331,8 +333,7 @@ static void scan_and_kill(void)
 			__thaw_task(t);
 		rcu_read_unlock();
 
-		/* Allow the victim to run on any CPU. This won't schedule. */
-		set_cpus_allowed_ptr(vtsk, cpu_all_mask);
+		/* Do not force the victim onto all CPUs; let scheduler decide */
 
 		/* Store the number of anon pages to sort victims for reaping */
 		victim->size = get_mm_counter(mm, MM_ANONPAGES);
@@ -366,6 +367,7 @@ static void scan_and_kill(void)
 		if (atomic_read(&nr_killed) < nr_to_kill)
 			pr_warn("Timeout hit waiting for victims to die\n");
 		else
+			/* Brief pause to let memory pressure subside after freeing */
 			msleep(SLEEP_DURATION_MS);
 	}
 
@@ -406,24 +408,31 @@ static struct mm_struct *next_reap_victim(void)
 		if (!mm || test_bit(MMF_OOM_SKIP, &mm->flags))
 			continue;
 
+		/* Grab a reference to mm to prevent UAF */
+		mmgrab(mm);
+		write_unlock(&mm_free_lock);
+
 		/* Do a trylock so the reaper thread doesn't sleep */
 		if (!mmap_read_trylock(mm)) {
+			mmdrop(mm);
 			should_retry = true;
-			continue;
+			mm = ERR_PTR(-EAGAIN);
+			goto out;
 		}
 
 		/*
 		 * Check MMF_OOM_SKIP again under the lock in case this mm was
 		 * reaped by exit_mmap() and then had its page tables destroyed.
-		 * No mmgrab() is needed because the reclaim thread sets
-		 * MMF_OOM_VICTIM under task_lock() for the mm's task, which
-		 * guarantees that MMF_OOM_VICTIM is always set before the
-		 * victim mm can enter exit_mmap(). Therefore, an mmap read lock
-		 * is sufficient to keep the mm struct itself from being freed.
+		 * With mmgrab() we are safe even if the mm is freed concurrently.
 		 */
 		if (!test_bit(MMF_OOM_SKIP, &mm->flags))
-			break;
+			goto out; /* success, mm is locked and referenced */
 		mmap_read_unlock(mm);
+		mmdrop(mm);
+		mm = NULL;
+
+		/* Re-acquire lock for next iteration */
+		write_lock(&mm_free_lock);
 	}
 
 	if (!mm) {
@@ -439,7 +448,7 @@ static struct mm_struct *next_reap_victim(void)
 			nr_victims = 0;
 	}
 	write_unlock(&mm_free_lock);
-
+out:
 	return mm;
 }
 
@@ -463,6 +472,7 @@ static void reap_victims(void)
 			set_bit(MMF_OOM_SKIP, &mm->flags);
 		}
 		mmap_read_unlock(mm);
+		mmdrop(mm); /* drop the reference taken in next_reap_victim() */
 	}
 }
 
@@ -542,13 +552,23 @@ static int simple_lmk_init_set(const char *val, const struct kernel_param *kp)
 	if (!atomic_cmpxchg(&init_done, 0, 1)) {
 		thread = kthread_run(simple_lmk_reaper_thread, NULL,
 				     "simple_lmkd_reaper");
-		BUG_ON(IS_ERR(thread));
+		if (IS_ERR(thread)) {
+			pr_err("Failed to start reaper thread: %ld\n", PTR_ERR(thread));
+			return PTR_ERR(thread);
+		}
 		thread = kthread_run(simple_lmk_reclaim_thread, NULL,
 				     "simple_lmkd");
-		BUG_ON(IS_ERR(thread));
-		BUG_ON(vmpressure_notifier_register(&vmpressure_notif));
+		if (IS_ERR(thread)) {
+			pr_err("Failed to start reclaim thread: %ld\n", PTR_ERR(thread));
+			return PTR_ERR(thread);
+		}
+		if (vmpressure_notifier_register(&vmpressure_notif)) {
+			pr_err("Failed to register vmpressure notifier\n");
+			return -EINVAL;
+		}
 	}
 
+	/* Set default parameters based on total RAM only once at init */
 	si_meminfo(&i);
 	unsigned long total_mb = i.totalram >> (20 - PAGE_SHIFT);
 	if (total_mb <= 4096) {
