@@ -86,3 +86,5 @@ obj-$(CONFIG_KINECTICS_XR_NORDIC) += kxrctrl/
 obj-y 	+= goodix/
 obj-y 	+= focaltech/
 obj-y   += cdfingerfp/
+obj-$(CONFIG_USB7002_HUB)       += usb7002/
+obj-$(CONFIG_QTI_HEARTBEAT)     += heartbeat/

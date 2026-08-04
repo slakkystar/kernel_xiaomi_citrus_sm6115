@@ -662,6 +662,8 @@ source "drivers/misc/focaltech/Kconfig"
 source "drivers/misc/cdfingerfp/Kconfig"
 source "drivers/misc/xiaomi_fs/Kconfig"
 source "drivers/misc/hqsysfs/Kconfig"
+source "drivers/misc/usb7002/Kconfig"
+source "drivers/misc/heartbeat/Kconfig"
 endmenu
 
 config OKL4_USER_VIPC
