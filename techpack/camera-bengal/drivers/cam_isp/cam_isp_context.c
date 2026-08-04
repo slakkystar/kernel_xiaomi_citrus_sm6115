@@ -3180,7 +3180,7 @@ static int __cam_isp_ctx_rdi_only_sof_in_bubble_state(
 static int __cam_isp_ctx_rdi_only_reg_upd_in_bubble_applied_state(
 	struct cam_isp_context *ctx_isp, void *evt_data)
 {
-	struct cam_ctx_request  *req;
+	struct cam_ctx_request  *req = NULL;
 	struct cam_context      *ctx = ctx_isp->base;
 	struct cam_isp_ctx_req  *req_isp;
 	struct cam_req_mgr_trigger_notify  notify;
@@ -3240,8 +3240,9 @@ static int __cam_isp_ctx_rdi_only_reg_upd_in_bubble_applied_state(
 	CAM_DBG(CAM_ISP, "next Substate[%s]",
 		__cam_isp_ctx_substate_val_to_type(
 		ctx_isp->substate_activated));
-	__cam_isp_ctx_update_event_record(ctx_isp,
-		CAM_ISP_CTX_EVENT_RUP, req);
+	if (req)
+		__cam_isp_ctx_update_event_record(ctx_isp,
+			CAM_ISP_CTX_EVENT_RUP, req);
 	return 0;
 error:
 	/* Send SOF event as idle frame*/
