@@ -1648,7 +1648,7 @@ static ssize_t show_mcu_firmware(struct kobject *kobj,
 
 static struct kobj_attribute fw_version_attr = __ATTR(version, 0664, show_mcu_firmware, NULL);
 
-static int qti_can_create_sysfs_entry() {
+static int qti_can_create_sysfs_entry(void) {
 	int ret = 0;
 
 	pr_debug("%s: \n", __func__);
