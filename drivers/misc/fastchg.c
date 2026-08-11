@@ -28,6 +28,7 @@
 #include <linux/module.h>
 
 int force_fast_charge = 0;
+EXPORT_SYMBOL(force_fast_charge);
 
 static int __init get_fastcharge_opt(char *ffc)
 {
@@ -40,35 +41,38 @@ static int __init get_fastcharge_opt(char *ffc)
 	}
 	return 1;
 }
-
 __setup("ffc=", get_fastcharge_opt);
 
-static ssize_t force_fast_charge_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
+static ssize_t force_fast_charge_show(struct kobject *kobj,
+				      struct kobj_attribute *attr, char *buf)
 {
-	size_t count = 0;
-	count += sprintf(buf, "%d\n", force_fast_charge);
-	return count;
+	return sprintf(buf, "%d\n", READ_ONCE(force_fast_charge));
 }
 
-static ssize_t force_fast_charge_store(struct kobject *kobj, struct kobj_attribute *attr, const char *buf, size_t count)
+static ssize_t force_fast_charge_store(struct kobject *kobj,
+				       struct kobj_attribute *attr,
+				       const char *buf, size_t count)
 {
-	sscanf(buf, "%d ", &force_fast_charge);
-	if (force_fast_charge < 0 || force_fast_charge > 1)
-		force_fast_charge = 0;
-
+	int val;
+	if (sscanf(buf, "%d", &val) != 1)
+		return -EINVAL;
+	if (val < 0 || val > 1)
+		val = 0;
+	WRITE_ONCE(force_fast_charge, val);
 	return count;
 }
 
 static struct kobj_attribute force_fast_charge_attribute =
-__ATTR(force_fast_charge, 0664, force_fast_charge_show, force_fast_charge_store);
+	__ATTR(force_fast_charge, 0664,
+	       force_fast_charge_show, force_fast_charge_store);
 
 static struct attribute *force_fast_charge_attrs[] = {
-&force_fast_charge_attribute.attr,
-NULL,
+	&force_fast_charge_attribute.attr,
+	NULL,
 };
 
 static struct attribute_group force_fast_charge_attr_group = {
-.attrs = force_fast_charge_attrs,
+	.attrs = force_fast_charge_attrs,
 };
 
 /* Initialize fast charge sysfs folder */
@@ -76,22 +80,18 @@ static struct kobject *force_fast_charge_kobj;
 
 int force_fast_charge_init(void)
 {
-	int force_fast_charge_retval;
+	int ret;
 
 	force_fast_charge_kobj = kobject_create_and_add("fast_charge", kernel_kobj);
-	if (!force_fast_charge_kobj) {
-			return -ENOMEM;
+	if (!force_fast_charge_kobj)
+		return -ENOMEM;
+
+	ret = sysfs_create_group(force_fast_charge_kobj, &force_fast_charge_attr_group);
+	if (ret) {
+		kobject_put(force_fast_charge_kobj);
+		return ret;
 	}
-
-	force_fast_charge_retval = sysfs_create_group(force_fast_charge_kobj, &force_fast_charge_attr_group);
-
-	if (force_fast_charge_retval)
-		kobject_put(force_fast_charge_kobj);
-
-	if (force_fast_charge_retval)
-		kobject_put(force_fast_charge_kobj);
-
-	return (force_fast_charge_retval);
+	return 0;
 }
 
 void force_fast_charge_exit(void)
@@ -101,3 +101,4 @@ void force_fast_charge_exit(void)
 
 module_init(force_fast_charge_init);
 module_exit(force_fast_charge_exit);
+MODULE_LICENSE("GPL");
