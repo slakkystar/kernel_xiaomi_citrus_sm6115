@@ -644,7 +644,7 @@ config FORCE_FAST_CHARGE
 config AUTO_CUT_CHARGE
 	tristate "Auto cut charge feature"
 	depends on SMB5_LIB
-	default n
+	default y
 	help
 	  Enable auto cut charge feature that stops charging when
 	  battery reaches 100% and resumes when battery drops below
