@@ -24,6 +24,8 @@
 #include "smb5-reg.h"
 #include "smb5-lib.h"
 #include "schgm-flash.h"
+#include <linux/kernel.h>
+#include <linux/init.h>
 
 static struct smb_params smb5_pmi632_params = {
 	.fcc			= {
@@ -896,6 +898,7 @@ static enum power_supply_property smb5_usb_props[] = {
 	POWER_SUPPLY_PROP_CHARGER_STATUS,
 	POWER_SUPPLY_PROP_INPUT_VOLTAGE_SETTLED,
 	POWER_SUPPLY_PROP_OTG_ONLINE,
+	POWER_SUPPLY_PROP_MODEL_NAME,
 };
 
 static int smb5_usb_get_prop(struct power_supply *psy,
@@ -1751,6 +1754,33 @@ static enum power_supply_property smb5_batt_props[] = {
 };
 
 #define DEBUG_ACCESSORY_TEMP_DECIDEGC	250
+static const char *smb5_get_model_name(void)
+{
+    const char *sku;
+    const char *prefix = "androidboot.product.hardware.sku=";
+
+    sku = strstr(saved_command_line, prefix);
+
+    if (!sku)
+        return "Unknown";
+
+    sku += strlen(prefix);
+
+    if (!strncmp(sku, "lime", 4))
+        return "Redmi 9T (lime)";
+
+    if (!strncmp(sku, "lemon", 5))
+        return "Redmi 9T NFC (lemon)";
+
+    if (!strncmp(sku, "pomelo", 6))
+        return "Redmi Note 9 4G (pomelo)";
+
+    if (!strncmp(sku, "citrus", 6))
+        return "POCO M3 (citrus)";
+
+    return "Unknown";
+}
+
 static int smb5_batt_get_prop(struct power_supply *psy,
 		enum power_supply_property psp,
 		union power_supply_propval *val)
@@ -1759,6 +1789,9 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 	int rc = 0;
 
 	switch (psp) {
+	case POWER_SUPPLY_PROP_MODEL_NAME:
+		val->strval = smb5_get_model_name();
+		break;
 	case POWER_SUPPLY_PROP_STATUS:
 		rc = smblib_get_prop_batt_status(chg, val);
 		break;
