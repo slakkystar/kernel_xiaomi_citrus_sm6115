@@ -184,6 +184,7 @@
 	qcom,sw-jeita-enable;
 	qcom,step-charging-enable;
 	qcom,hvdcp2-max-icl-ua = <2000000>;
+	qcom,battery-model-name = "NVT-6000mAh";
 	/* SMB1355 only */
 	qcom,sec-charger-config = <0>;
 	dpdm-supply = <&qusb_phy0>;

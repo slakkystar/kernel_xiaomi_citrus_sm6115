@@ -623,6 +623,9 @@ struct smb_charger {
 	unsigned long recent_collapse_time;
 	bool		  hvdcp_disabled;
 	bool		  collapsed;
+
+	/* battery model */
+	const char *batt_model_name;
 };
 
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val);

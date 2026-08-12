@@ -599,6 +599,8 @@ static int smb5_parse_dt_misc(struct smb5 *chip, struct device_node *node)
 	if (chg->chg_param.fcc_step_size_ua <= 0)
 		chg->chg_param.fcc_step_size_ua = DEFAULT_FCC_STEP_SIZE_UA;
 
+	of_property_read_string(node, "qcom,battery-model-name", &chg->batt_model_name);
+
 	/*
 	 * If property is present parallel charging with CP is disabled
 	 * with HVDCP3 adapter.
@@ -1754,33 +1756,6 @@ static enum power_supply_property smb5_batt_props[] = {
 };
 
 #define DEBUG_ACCESSORY_TEMP_DECIDEGC	250
-static const char *smb5_get_model_name(void)
-{
-    const char *sku;
-    const char *prefix = "androidboot.product.hardware.sku=";
-
-    sku = strstr(saved_command_line, prefix);
-
-    if (!sku)
-        return "Unknown";
-
-    sku += strlen(prefix);
-
-    if (!strncmp(sku, "lime", 4))
-        return "Redmi 9T (lime)";
-
-    if (!strncmp(sku, "lemon", 5))
-        return "Redmi 9T NFC (lemon)";
-
-    if (!strncmp(sku, "pomelo", 6))
-        return "Redmi Note 9 4G (pomelo)";
-
-    if (!strncmp(sku, "citrus", 6))
-        return "POCO M3 (citrus)";
-
-    return "Unknown";
-}
-
 static int smb5_batt_get_prop(struct power_supply *psy,
 		enum power_supply_property psp,
 		union power_supply_propval *val)
@@ -1790,7 +1765,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_MODEL_NAME:
-		val->strval = smb5_get_model_name();
+		val->strval = chg->batt_model_name ? chg->batt_model_name : "Unknown";
 		break;
 	case POWER_SUPPLY_PROP_STATUS:
 		rc = smblib_get_prop_batt_status(chg, val);
