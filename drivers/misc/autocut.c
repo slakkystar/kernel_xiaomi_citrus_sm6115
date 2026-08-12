@@ -22,7 +22,7 @@
 #define DEFAULT_RECHECK_SOC            95
 #define DEFAULT_CHECK_INTERVAL_MS      600000
 
-int auto_cut_charge_enabled = 0;
+int auto_cut_charge_enabled = 1;
 int auto_cut_charge_threshold = DEFAULT_CUT_THRESHOLD_SOC;
 int auto_cut_charge_recheck_soc = DEFAULT_RECHECK_SOC;
 int auto_cut_charge_current_soc = 0;
