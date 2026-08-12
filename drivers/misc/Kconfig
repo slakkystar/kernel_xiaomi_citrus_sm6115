@@ -641,6 +641,17 @@ config FORCE_FAST_CHARGE
 	help
 	  This allows users to override default charge rate for USB
 
+config AUTO_CUT_CHARGE
+	tristate "Auto cut charge feature"
+	depends on SMB5_LIB
+	default n
+	help
+	  Enable auto cut charge feature that stops charging when
+	  battery reaches 100% and resumes when battery drops below
+	  a configurable threshold.
+
+	  Say Y if you want to protect battery from overcharging.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

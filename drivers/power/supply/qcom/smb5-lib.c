@@ -31,6 +31,10 @@
 #include <linux/fastchg.h>
 #endif
 
+#ifdef CONFIG_AUTO_CUT_CHARGE
+#include <linux/autocut.h>
+#endif
+
 #define smblib_err(chg, fmt, ...)		\
 	pr_err("%s: %s: " fmt, chg->name,	\
 		__func__, ##__VA_ARGS__)	\
@@ -1299,6 +1303,9 @@ static void smblib_uusb_removal(struct smb_charger *chg)
 
 	chg->qc3p5_detected = false;
 	smblib_update_usb_type(chg);
+#ifdef CONFIG_AUTO_CUT_CHARGE
+	auto_cut_charge_reset();
+#endif
 }
 
 void smblib_suspend_on_debug_battery(struct smb_charger *chg)
@@ -1961,6 +1968,11 @@ int smblib_get_prop_batt_capacity(struct smb_charger *chg,
 
 	rc = smblib_get_prop_from_bms(chg, POWER_SUPPLY_PROP_CAPACITY, val);
 
+#ifdef CONFIG_AUTO_CUT_CHARGE
+	if (!rc)
+		auto_cut_charge_update_soc(val->intval);
+#endif
+
 	return rc;
 }
 
@@ -2181,6 +2193,12 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 		else
 			val->intval = POWER_SUPPLY_STATUS_CHARGING;
 	}
+#ifdef CONFIG_AUTO_CUT_CHARGE
+	if (val->intval == POWER_SUPPLY_STATUS_CHARGING ||
+	    val->intval == POWER_SUPPLY_STATUS_FULL) {
+		auto_cut_charge_check(chg);
+	}
+#endif
 	return 0;
 }
 
@@ -5628,7 +5646,9 @@ void smblib_usb_plugin_locked(struct smb_charger *chg)
 				chg->hvdcp_disabled = true;
 		}
 		need_confirm = false;
-
+#ifdef CONFIG_AUTO_CUT_CHARGE
+		auto_cut_charge_reset();
+#endif
 		cancel_delayed_work_sync(&chg->pr_swap_detach_work);
 		vote(chg->awake_votable, DETACH_DETECT_VOTER, false, 0);
 		rc = smblib_request_dpdm(chg, true);
