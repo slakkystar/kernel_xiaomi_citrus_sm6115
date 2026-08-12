@@ -15,6 +15,7 @@
 #include <linux/delay.h>
 #include <linux/power_supply.h>
 #include <linux/autocut.h>
+#include <linux/pmic-voter.h>
 
 #include "../../drivers/power/supply/qcom/smb5-lib.h"
 
