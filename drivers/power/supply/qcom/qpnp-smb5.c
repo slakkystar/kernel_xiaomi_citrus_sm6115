@@ -900,7 +900,6 @@ static enum power_supply_property smb5_usb_props[] = {
 	POWER_SUPPLY_PROP_CHARGER_STATUS,
 	POWER_SUPPLY_PROP_INPUT_VOLTAGE_SETTLED,
 	POWER_SUPPLY_PROP_OTG_ONLINE,
-	POWER_SUPPLY_PROP_MODEL_NAME,
 };
 
 static int smb5_usb_get_prop(struct power_supply *psy,
@@ -1753,6 +1752,7 @@ static enum power_supply_property smb5_batt_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_FCC_STEPPER_ENABLE,
+	POWER_SUPPLY_PROP_MODEL_NAME,
 };
 
 #define DEBUG_ACCESSORY_TEMP_DECIDEGC	250
