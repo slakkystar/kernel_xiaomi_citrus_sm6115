@@ -2196,7 +2196,20 @@ int smblib_get_prop_batt_status(struct smb_charger *chg,
 #ifdef CONFIG_AUTO_CUT_CHARGE
 	if (val->intval == POWER_SUPPLY_STATUS_CHARGING ||
 	    val->intval == POWER_SUPPLY_STATUS_FULL) {
-		auto_cut_charge_check(chg);
+		union power_supply_propval soc_val, curr_val, temp_val;
+		int rc;
+		int soc = 0, current_ma = 0, temp = 250; /* default */
+
+		rc = smblib_get_prop_from_bms(chg, POWER_SUPPLY_PROP_CAPACITY, &soc_val);
+		if (!rc) soc = soc_val.intval;
+
+		rc = smblib_get_prop_from_bms(chg, POWER_SUPPLY_PROP_CURRENT_NOW, &curr_val);
+		if (!rc) current_ma = curr_val.intval / 1000; /* µA → mA */
+
+		rc = smblib_get_prop_from_bms(chg, POWER_SUPPLY_PROP_TEMP, &temp_val);
+		if (!rc) temp = temp_val.intval;
+
+		auto_cut_charge_check(chg, soc, current_ma, temp);
 	}
 #endif
 	return 0;

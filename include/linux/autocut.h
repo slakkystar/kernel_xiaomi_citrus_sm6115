@@ -19,7 +19,7 @@ extern int auto_cut_charge_recheck_soc;
 extern int auto_cut_charge_current_soc;
 extern bool auto_cut_charge_active;
 
-void auto_cut_charge_check(struct smb_charger *chg);
+void auto_cut_charge_check(struct smb_charger *chg, int soc, int current_ma, int temp);
 void auto_cut_charge_update_soc(int soc);
 void auto_cut_charge_reset(void);
 
