@@ -279,14 +279,6 @@ enum msm_event_wait {
 };
 
 /**
- * enum msm_component_event - type of component events
- * @MSM_COMP_OBJECT_CREATED - notify when all builtin objects are created
- */
-enum msm_component_event {
-        MSM_COMP_OBJECT_CREATED = 0,
-};
-
-/**
  * struct msm_roi_alignment - region of interest alignment restrictions
  * @xstart_pix_align: left x offset alignment restriction
  * @width_pix_align: width alignment restriction
@@ -720,9 +712,6 @@ struct msm_drm_private {
 	bool shutdown_in_progress;
 
 	struct msm_idle idle;
-
-	/* list of component registered for notification */
-	struct blocking_notifier_head component_notifier_list;
 };
 
 /* get struct msm_kms * from drm_device * */
@@ -738,13 +727,6 @@ int msm_atomic_prepare_fb(struct drm_plane *plane,
 void msm_atomic_commit_tail(struct drm_atomic_state *state);
 int msm_atomic_commit(struct drm_device *dev,
 	struct drm_atomic_state *state, bool nonblock);
-
-/**
- * msm_handle_commit_status: checks and sends commit failure
- * event to heartbeat driver
- */
-void msm_handle_commit_status(struct msm_kms *kms, bool status,
-				char *drv_name, int crtc_id);
 
 /* callback from wq once fence has passed: */
 struct msm_fence_cb {
@@ -1068,34 +1050,5 @@ static inline unsigned long timeout_to_jiffies(const ktime_t *timeout)
 int msm_get_mixer_count(struct msm_drm_private *priv,
 		const struct drm_display_mode *mode,
 		const struct msm_resource_caps_info *res, u32 *num_lm);
-
-/**
- * msm_drm_register_component - register a component notifier
- * @dev: drm device
- * @nb: notifier block to callback on events
- *
- * This function registers a notifier callback function
- * to msm_drm_component_list, which would be called during probe.
- */
-int msm_drm_register_component(struct drm_device *dev,
-                struct notifier_block *nb);
-
-/**
- * msm_drm_unregister_component - unregister a component notifier
- * @dev: drm device
- * @nb: notifier block to callback on events
- *
- * This function registers a notifier callback function
- * to msm_drm_component_list, which would be called during probe.
- */
-int msm_drm_unregister_component(struct drm_device *dev,
-                struct notifier_block *nb);
-
-/**
- * msm_drm_notify_components - notify components of msm_component_event
- * @event: defined in msm_component_event
- */
-int msm_drm_notify_components(struct drm_device *dev,
-                enum msm_component_event event);
 
 #endif /* __MSM_DRV_H__ */

@@ -144,7 +144,7 @@ static int sde_backlight_setup(struct sde_connector *c_conn,
 	if (!c_conn || !dev || !dev->dev) {
 		SDE_ERROR("invalid param\n");
 		return -EINVAL;
-	} else if (!c_conn->ops.set_backlight) {
+	} else if (c_conn->connector_type != DRM_MODE_CONNECTOR_DSI) {
 		return 0;
 	}
 
@@ -2684,7 +2684,6 @@ struct drm_connector *sde_connector_init(struct drm_device *dev,
 
 	c_conn->base.panel = panel;
 	c_conn->connector_type = connector_type;
-	c_conn->panel = panel;
 	c_conn->encoder = encoder;
 	c_conn->display = display;
 

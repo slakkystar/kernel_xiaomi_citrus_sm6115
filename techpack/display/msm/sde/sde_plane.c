@@ -2500,7 +2500,7 @@ static int _sde_atomic_check_excl_rect(struct sde_plane *psde,
 
 	/* check excl rect configs */
 	if (!ret && pstate->excl_rect.w && pstate->excl_rect.h) {
-		struct sde_rect intersect = { 0 };
+		struct sde_rect intersect;
 
 		/*
 		 * Check exclusion rect against src rect.

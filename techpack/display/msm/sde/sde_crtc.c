@@ -4626,6 +4626,7 @@ static int _sde_crtc_check_get_pstates(struct drm_crtc *crtc,
 		struct drm_crtc_state *state,
 		struct drm_display_mode *mode,
 		struct plane_state *pstates,
+		struct drm_plane *plane,
 		struct sde_multirect_plane_states *multirect_plane,
 		int *cnt)
 {
@@ -4636,7 +4637,6 @@ static int _sde_crtc_check_get_pstates(struct drm_crtc *crtc,
 	int rc = 0, multirect_count = 0, i, mixer_width, mixer_height;
 	int inc_sde_stage = 0;
 	struct sde_kms *kms;
-	struct drm_plane *plane = NULL;
 
 	sde_crtc = to_sde_crtc(crtc);
 	cstate = to_sde_crtc_state(state);
@@ -4821,6 +4821,7 @@ static int _sde_crtc_atomic_check_pstates(struct drm_crtc *crtc,
 	struct sde_crtc *sde_crtc;
 	struct sde_crtc_state *cstate;
 	struct sde_kms *kms;
+	struct drm_plane *plane;
 	struct drm_display_mode *mode;
 	int rc = 0, cnt = 0;
 
@@ -4837,7 +4838,7 @@ static int _sde_crtc_atomic_check_pstates(struct drm_crtc *crtc,
 
 	/* get plane state for all drm planes associated with crtc state */
 	rc = _sde_crtc_check_get_pstates(crtc, state, mode, pstates,
-			multirect_plane, &cnt);
+			plane, multirect_plane, &cnt);
 	if (rc)
 		return rc;
 
