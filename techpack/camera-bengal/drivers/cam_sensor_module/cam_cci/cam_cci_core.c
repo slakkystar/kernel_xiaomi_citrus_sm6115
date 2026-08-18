@@ -1373,9 +1373,6 @@ static int32_t cam_cci_i2c_write(struct v4l2_subdev *sd,
 		c_ctrl->cci_info->sid, c_ctrl->cci_info->retries,
 		c_ctrl->cci_info->id_map);
 
-	if (master >= MASTER_MAX)
-		master = NUM_MASTERS - 1;
-
 	mutex_lock(&cci_dev->cci_master_info[master].mutex);
 	if (cci_dev->cci_master_info[master].is_first_req) {
 		cci_dev->cci_master_info[master].is_first_req = false;
@@ -1454,10 +1451,6 @@ static void cam_cci_write_async_helper(struct work_struct *work)
 	cci_dev = write_async->cci_dev;
 	i2c_msg = &write_async->c_ctrl.cfg.cci_i2c_write_cfg;
 	master = write_async->c_ctrl.cci_info->cci_i2c_master;
-
-	if (master >= MASTER_MAX)
-		master = NUM_MASTERS - 1;
-
 	cci_master_info = &cci_dev->cci_master_info[master];
 
 	mutex_lock(&cci_master_info->mutex_q[write_async->queue]);
