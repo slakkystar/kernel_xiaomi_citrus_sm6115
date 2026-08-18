@@ -9,10 +9,6 @@
  *  Simplified starting of init:  Michael A. Griffith <grif@acm.org>
  */
 
-/*
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- */
-
 #define DEBUG		/* Enable initcall_debug */
 
 #include <linux/types.h>
@@ -105,10 +101,6 @@
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/initcall.h>
-
-#ifdef CONFIG_MSM_BOOT_TIME_MARKER
-#include <soc/qcom/boot_stats.h>
-#endif
 
 static int kernel_init(void *);
 
@@ -1112,10 +1104,6 @@ static int __ref kernel_init(void *unused)
 	numa_default_policy();
 
 	rcu_end_inkernel_boot();
-
-#ifdef CONFIG_MSM_BOOT_TIME_MARKER
-	place_marker("M - DRIVER Kernel Boot Done");
-#endif
 
 	if (ramdisk_execute_command) {
 		ret = run_init_process(ramdisk_execute_command);
