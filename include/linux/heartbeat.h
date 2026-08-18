@@ -26,7 +26,7 @@
 #ifdef CONFIG_QTI_HEARTBEAT
 void trigger_heartbeat_event(const char *driver_name, uint32_t state);
 #else
-static inline void trigger_heartbeat_event(const char *driver_name, uint32_t state) { }
+void trigger_heartbeat_event(const char *driver_name, uint32_t state) { }
 #endif
 
 #endif
