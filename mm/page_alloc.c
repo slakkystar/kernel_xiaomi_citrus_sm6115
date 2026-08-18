@@ -2207,25 +2207,30 @@ static int move_freepages(struct zone *zone,
 		/* Make sure we are not inadvertently changing nodes */
 		VM_BUG_ON_PAGE(page_to_nid(page) != zone_to_nid(zone), page);
 
-		if (!PageBuddy(page)) {
-			/*
-			 * We assume that pages that could be isolated for
-			 * migration are movable. But we don't actually try
-			 * isolating, as that would be expensive.
-			 */
-			if (num_movable &&
-					(PageLRU(page) || __PageMovable(page)))
-				(*num_movable)++;
+        if (!PageBuddy(page)) {
+                /*
+                 * We assume that pages that could be isolated for
+                 * migration are movable. But we don't actually try
+                 * isolating, as that would be expensive.
+                 */
+                if (num_movable &&
+                                (PageLRU(page) || __PageMovable(page)))
+                        (*num_movable)++;
 
-			page++;
-			continue;
-		}
+                page++;
+                continue;
+        }
 
-		order = page_order(page);
-		list_move(&page->lru,
-			  &zone->free_area[order].free_list[migratetype]);
-		page += 1 << order;
-		pages_moved += 1 << order;
+        /* Safety check: Ensure order is valid before using it */
+        if (unlikely(page_order(page) >= MAX_ORDER)) {
+                page++;
+                continue;
+        }
+        order = page_order(page);
+        list_move(&page->lru,
+                  &zone->free_area[order].free_list[migratetype]);
+        page += 1 << order;
+        pages_moved += 1 << order;
 	}
 
 	return pages_moved;
@@ -2249,8 +2254,12 @@ int move_freepages_block(struct zone *zone, struct page *page,
 	if (!zone_spans_pfn(zone, end_pfn))
 		return 0;
 
+	/* Safety check: Ensure start_page is a valid buddy */
+	if (unlikely(!PageBuddy(start_page) || page_order(start_page) >= MAX_ORDER))
+		return 0;
+
 	return move_freepages(zone, start_page, end_page, migratetype,
-								num_movable);
+							num_movable);
 }
 
 static void change_pageblock_range(struct page *pageblock_page,
@@ -2372,6 +2381,10 @@ static void steal_suitable_fallback(struct zone *zone, struct page *page,
 	struct free_area *area;
 	int free_pages, movable_pages, alike_pages;
 	int old_block_type;
+
+	/* Safety check: Skip if page is corrupted or order invalid */
+	if (unlikely(!PageBuddy(page) || page_order(page) >= MAX_ORDER))
+		return;
 
 	old_block_type = get_pageblock_migratetype(page);
 
