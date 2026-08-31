@@ -49,9 +49,19 @@ enum zram_pageflags {
 	ZRAM_SAME,	/* Page consists the same element */
 	ZRAM_WB,	/* page is stored on backing_device */
 	ZRAM_UNDER_WB,	/* page is under writeback */
+	ZRAM_HUGE,	/* Incompressible page */
 	ZRAM_IDLE,	/* not accessed page since last idle marking */
 	ZRAM_DEDUPED,	/* Deduplicated with existing entry */
-
+#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
+	ZRAM_CACHED,   /* page is cached in async compress cache buffer */
+	ZRAM_CACHED_COMPRESS, /* page is under async compress */
+#endif
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	ZRAM_BATCHING_OUT,
+	ZRAM_FROM_HYBRIDSWAP,
+	ZRAM_MCGID_CLEAR,
+	ZRAM_IN_BD, /* zram stored in back device */
+#endif
 	__NR_ZRAM_PAGEFLAGS,
 };
 
@@ -70,6 +80,9 @@ struct zram_table_entry {
 	union {
 		struct zram_entry *entry;
 		unsigned long element;
+#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
+		unsigned long page;
+#endif
 	};
 	unsigned long flags;
 #ifdef CONFIG_ZRAM_MEMORY_TRACKING
@@ -86,6 +99,7 @@ struct zram_stats {
 	atomic64_t invalid_io;	/* non-page-aligned I/O requests */
 	atomic64_t notify_free;	/* no. of swap slot free notifications */
 	atomic64_t same_pages;		/* no. of same element filled pages */
+	atomic64_t huge_pages;		/* no. of huge pages */
 	atomic64_t pages_stored;	/* no. of pages currently stored */
 	atomic_long_t max_used_pages;	/* no. of maximum pages stored */
 	atomic64_t writestall;		/* no. of write slow paths */
@@ -133,8 +147,8 @@ struct zram {
 	 */
 	bool claim; /* Protected by bdev->bd_mutex */
 	bool use_dedup;
-#ifdef CONFIG_ZRAM_WRITEBACK
 	struct file *backing_dev;
+#ifdef CONFIG_ZRAM_WRITEBACK
 	spinlock_t wb_limit_lock;
 	bool wb_limit_enable;
 	u64 bd_wb_limit;
@@ -144,6 +158,15 @@ struct zram {
 #endif
 #ifdef CONFIG_ZRAM_MEMORY_TRACKING
 	struct dentry *debugfs_dir;
+#endif
+#if (defined CONFIG_ZRAM_WRITEBACK) || (defined CONFIG_HYBRIDSWAP_CORE)
+	struct block_device *bdev;
+	unsigned int old_block_size;
+	unsigned long nr_pages;
+	unsigned long increase_nr_pages;
+#endif
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	struct hyb_info *infos;
 #endif
 };
 
@@ -157,4 +180,5 @@ static inline bool zram_dedup_enabled(struct zram *zram)
 }
 
 void zram_entry_free(struct zram *zram, struct zram_entry *entry);
+
 #endif

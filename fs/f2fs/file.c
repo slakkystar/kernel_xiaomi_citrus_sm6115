@@ -4586,9 +4586,18 @@ static ssize_t f2fs_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
 		if (ret)
 			goto out_unlock;
 	}
+
 	/* Possibly preallocate the blocks for the write. */
 	target_size = iocb->ki_pos + iov_iter_count(from);
-	preallocated = f2fs_preallocate_blocks(iocb, from);
+
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	if ((iocb->ki_flags & IOCB_DIRECT) &&
+	    f2fs_overwrite_io(inode, iocb->ki_pos, iov_iter_count(from)))
+		preallocated = 0;
+	else
+#endif
+		preallocated = f2fs_preallocate_blocks(iocb, from);
+
 	if (preallocated < 0) {
 		ret = preallocated;
 	} else {
@@ -4641,6 +4650,7 @@ out:
 		ret = generic_write_sync(iocb, ret);
 	return ret;
 }
+
 
 #ifdef CONFIG_COMPAT
 struct compat_f2fs_gc_range {
