@@ -3,6 +3,7 @@
 #include <linux/init.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <linux/string.h>
 #include <asm/setup.h>
 
 #ifdef CONFIG_INITRAMFS_IGNORE_SKIP_FLAG
@@ -16,7 +17,7 @@ static char proc_command_line[COMMAND_LINE_SIZE];
 static void proc_command_line_init(void) {
 	char *offset_addr;
 
-	strcpy(proc_command_line, saved_command_line);
+	strscpy(proc_command_line, saved_command_line, COMMAND_LINE_SIZE);
 
 #ifdef CONFIG_INITRAMFS_IGNORE_SKIP_FLAG
 	offset_addr = strstr(proc_command_line, INITRAMFS_STR_FIND);
@@ -25,9 +26,20 @@ static void proc_command_line_init(void) {
 #endif
 
 #ifdef CONFIG_PROC_CMDLINE_APPEND_ANDROID_FORCE_NORMAL_BOOT
-	if (strstr(saved_command_line, "skip_initramfs"))
-		snprintf(proc_command_line, COMMAND_LINE_SIZE, "%s androidboot.force_normal_boot=1", proc_command_line);
+	if (strstr(saved_command_line, "skip_initramfs")) {
+		size_t len = strlen(proc_command_line);
+		snprintf(proc_command_line + len, COMMAND_LINE_SIZE - len, " androidboot.force_normal_boot=1");
+	}
 #endif
+
+	/* Принудительно дописываем параметры Play Integrity в конец cmdline */
+	{
+		size_t len = strlen(proc_command_line);
+		snprintf(proc_command_line + len, COMMAND_LINE_SIZE - len,
+			 " androidboot.verifiedbootstate=green"
+			 " androidboot.vbmeta.device_state=locked"
+			 " androidboot.vbmeta.digest=6163500b93dbf1a010cd14f84ea9815d359adb671e209f233f009bcfdf3c789c");
+	}
 }
 
 static int cmdline_proc_show(struct seq_file *m, void *v)
