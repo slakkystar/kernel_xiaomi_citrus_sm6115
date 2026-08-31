@@ -1188,6 +1188,39 @@ static const char *config_cmdline = CONFIG_CMDLINE;
 static const char *config_cmdline = "";
 #endif
 
+#ifdef CONFIG_BOOTLOADER_SPOOF
+/* Helper function: changes only the value after '=' up to the next space */
+static void replace_param_value(char *str, const char *key, const char *new_val)
+{
+	char *p = strstr(str, key);
+	if (!p)
+		return;
+
+	p += strlen(key); /* We move beyond the '=' sign */
+
+	size_t new_len = strlen(new_val);
+	size_t old_len = 0;
+
+	/* We count the length of the old value up to a space or the end of the line */
+	while (p[old_len] != ' ' && p[old_len] != '\0' && p[old_len] != '\n')
+		old_len++;
+
+	if (new_len <= old_len) {
+		memcpy(p, new_val, new_len);
+		/* Fill the remaining characters of the old value with spaces */
+		memset(p + new_len, ' ', old_len - new_len);
+	}
+}
+
+static void fix_dt_bootargs(char *cmdline)
+{
+	replace_param_value(cmdline, "androidboot.verifiedbootstate=", "green");
+	replace_param_value(cmdline, "androidboot.vbmeta.device_state=", "locked");
+	replace_param_value(cmdline, "androidboot.vbmeta.digest=",
+			    "6163500b93dbf1a010cd14f84ea9815d359adb671e209f233f009bcfdf3c789c");
+}
+#endif
+
 int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 				     int depth, void *data)
 {
@@ -1213,6 +1246,10 @@ int __init early_init_dt_scan_chosen(unsigned long node, const char *uname,
 		p = of_get_flat_dt_prop(node, "bootargs", &l);
 
 	if (p != NULL && l > 0) {
+#ifdef CONFIG_BOOTLOADER_SPOOF
+		fix_dt_bootargs((char *)p);
+#endif
+
 		if (concat_cmdline) {
 			int cmdline_len;
 			int copy_len;

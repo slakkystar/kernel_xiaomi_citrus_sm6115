@@ -124,4 +124,11 @@ config OF_DMA_DEFAULT_COHERENT
 	# arches should select this if DMA is coherent by default for OF devices
 	bool
 
+config BOOTLOADER_SPOOF
+	bool "Spoof bootloader state in cmdline and devicetree"
+	default y
+	help
+	  Hides unlocked bootloader status by replacing orange and unlocked
+	  flags with green and locked in proc/cmdline and devicetree bootargs.
+
 endif # OF

@@ -14,6 +14,22 @@
 
 static char proc_command_line[COMMAND_LINE_SIZE];
 
+#ifdef CONFIG_BOOTLOADER_SPOOF
+static void replace_cmdline_arg(char *cmdline, const char *old_str, const char *new_str)
+{
+	char *p = strstr(cmdline, old_str);
+	if (p) {
+		size_t old_len = strlen(old_str);
+		size_t new_len = strlen(new_str);
+
+		if (new_len <= old_len) {
+			memcpy(p, new_str, new_len);
+			memset(p + new_len, ' ', old_len - new_len);
+		}
+	}
+}
+#endif
+
 static void proc_command_line_init(void) {
 	char *offset_addr;
 
@@ -32,14 +48,19 @@ static void proc_command_line_init(void) {
 	}
 #endif
 
-	/* Принудительно дописываем параметры Play Integrity в конец cmdline */
-	{
-		size_t len = strlen(proc_command_line);
-		snprintf(proc_command_line + len, COMMAND_LINE_SIZE - len,
-			 " androidboot.verifiedbootstate=green"
-			 " androidboot.vbmeta.device_state=locked"
-			 " androidboot.vbmeta.digest=6163500b93dbf1a010cd14f84ea9815d359adb671e209f233f009bcfdf3c789c");
-	}
+#ifdef CONFIG_BOOTLOADER_SPOOF
+	replace_cmdline_arg(proc_command_line,
+			    "androidboot.verifiedbootstate=orange",
+			    "androidboot.verifiedbootstate=green");
+
+	replace_cmdline_arg(proc_command_line,
+			    "androidboot.vbmeta.device_state=unlocked",
+			    "androidboot.vbmeta.device_state=locked");
+
+	replace_cmdline_arg(proc_command_line,
+			    "androidboot.vbmeta.digest=eb975959b1c5a3e1639f4e0fea7d171a61a53ea3215efb454ee634221d7b3798",
+			    "androidboot.vbmeta.digest=6163500b93dbf1a010cd14f84ea9815d359adb671e209f233f009bcfdf3c789c");
+#endif
 }
 
 static int cmdline_proc_show(struct seq_file *m, void *v)
