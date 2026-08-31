@@ -1243,17 +1243,35 @@ static int override_release(char __user *release, size_t len)
 SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 {
 	struct new_utsname tmp;
+	const char *comm = current->comm;
+	size_t i;
+
+	static const struct {
+		const char *name;
+		size_t len;
+	} fake_comm[] = {
+		{ "bpfloader",   9  },
+		{ "netbpfload",  10 },
+		{ "netd",        4  },
+		{ "uprobestats", 11 },
+		{ "fsck.f2fs",   9  },
+		{ "pool-",       5  },
+	};
 
 	down_read(&uts_sem);
 	memcpy(&tmp, utsname(), sizeof(tmp));
-	if (!strncmp(current->comm, "bpfloader", 9) ||
-	    !strncmp(current->comm, "netbpfload", 10) ||
-	    !strncmp(current->comm, "netd", 4)) {
-		strcpy(tmp.release, "5.10.239");
-		pr_debug("fake uname: %s/%d release=%s\n",
-			 current->comm, current->pid, tmp.release);
+
+	for (i = 0; i < ARRAY_SIZE(fake_comm); i++) {
+		if (!strncmp(comm, fake_comm[i].name, fake_comm[i].len)) {
+			strscpy(tmp.release, "5.10.239", sizeof(tmp.release));
+			pr_debug("fake uname: %s/%d release=%s\n",
+				 current->comm, current->pid, tmp.release);
+			break;
+		}
 	}
+
 	up_read(&uts_sem);
+
 	if (copy_to_user(name, &tmp, sizeof(tmp)))
 		return -EFAULT;
 
@@ -1261,6 +1279,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 		return -EFAULT;
 	if (override_architecture(name))
 		return -EFAULT;
+
 	return 0;
 }
 
