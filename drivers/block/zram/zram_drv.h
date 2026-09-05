@@ -166,7 +166,7 @@ struct zram {
 	unsigned long increase_nr_pages;
 #endif
 #ifdef CONFIG_HYBRIDSWAP_CORE
-	struct hyb_info *infos;
+	struct hybridswap_area *area;
 #endif
 };
 

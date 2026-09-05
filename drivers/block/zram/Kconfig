@@ -113,6 +113,7 @@ config ZRAM_DEF_COMP
 config ZRAM_WRITEBACK
        bool "Write back incompressible or idle page to backing device"
        depends on ZRAM
+       default n
        help
 	 With incompressible page, there is no memory saving to keep it
 	 in memory. Instead, write it out to backing device.
@@ -143,9 +144,13 @@ config OPLUS_ZRAM_OPT
 	oplus zram optimization
 #endif /*OPLUS_FEATURE_ZRAM_OPT*/
 
+#ifdef OPLUS_FEATURE_ZRAM_WRITEBACK
+source "drivers/block/zram/zwb_handle/Kconfig"
+#endif /* OPLUS_FEATURE_ZRAM_WRITEBACK */
+
 config HYBRIDSWAP
 	bool "Enable Hybridswap"
-	depends on MEMCG && ZRAM && !ZRAM_DEDUP && !ZRAM_WRITEBACK
+	depends on MEMCG && ZRAM && !ZRAM_DEDUP && !ZRAM_WRITEBACK && !ZWB_HANDLE
 	default n
 	help
 	  Hybridswap is a intelligent memory management solution.
