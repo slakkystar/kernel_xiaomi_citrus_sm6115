@@ -1,4 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+#ifndef _KERNEL_SCHED_SCHED_H
+#define _KERNEL_SCHED_SCHED_H
 /*
  * Scheduler internal types and methods:
  */
@@ -3286,3 +3288,5 @@ struct sched_avg_stats {
 	int nr_scaled;
 };
 extern void sched_get_nr_running_avg(struct sched_avg_stats *stats);
+
+#endif /* _KERNEL_SCHED_SCHED_H */

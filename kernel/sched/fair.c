@@ -26,6 +26,9 @@
 
 #include "walt.h"
 
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+#include "../../drivers/soc/oplus/game_opt/game_ctrl.h"
+#endif
 #ifdef CONFIG_SMP
 static inline bool task_fits_max(struct task_struct *p, int cpu);
 static inline unsigned long boosted_task_util(struct task_struct *task);
@@ -912,7 +915,9 @@ static void update_curr(struct cfs_rq *cfs_rq)
 
 	if (entity_is_task(curr)) {
 		struct task_struct *curtask = task_of(curr);
-
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+		g_update_task_runtime(curtask, delta_exec);
+#endif
 		trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
 		cgroup_account_cputime(curtask, delta_exec);
 		account_group_exec_runtime(curtask, delta_exec);
@@ -1026,7 +1031,9 @@ update_stats_enqueue_sleeper(struct cfs_rq *cfs_rq, struct sched_entity *se)
 				__schedstat_inc(se->statistics.iowait_count);
 				trace_sched_stat_iowait(tsk, delta);
 			}
-
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+			g_sched_stat_blocked(tsk, delta);
+#endif
 			trace_sched_stat_blocked(tsk, delta);
 
 			/*
