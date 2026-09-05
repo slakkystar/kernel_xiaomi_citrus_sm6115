@@ -192,6 +192,12 @@ int kswapd_threads_current = DEF_KSWAPD_THREADS_PER_NODE;
  * From 0 .. 200.  Higher means more swappy.
  */
 int vm_swappiness = 60;
+#ifdef CONFIG_DYNAMIC_TUNNING_SWAPPINESS
+int vm_swappiness_threshold1 = 0;
+int vm_swappiness_threshold2 = 0;
+int swappiness_threshold1_size = 0;
+int swappiness_threshold2_size = 0;
+#endif
 #if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
 /*
  * Direct reclaim swappiness, exptct 0 - 60. Higher means more swappy and slower.
@@ -2470,7 +2476,8 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 		totalswap -= nandswap_si->pages;
 #endif
 
-
+	/* use vm_swappiness defaultly */
+	swappiness = vm_swappiness;
 #if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
 	if (!current_is_kswapd()) {
 #ifdef CONFIG_HYBRIDSWAP_SWAPD
@@ -2482,6 +2489,23 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 #endif
 			swappiness = direct_vm_swappiness;
 	}
+#ifdef CONFIG_DYNAMIC_TUNNING_SWAPPINESS
+	else {
+		unsigned long nr_file_pages =
+			global_node_page_state(NR_ACTIVE_FILE) +
+			global_node_page_state(NR_INACTIVE_FILE);
+
+		if (swappiness_threshold1_size && vm_swappiness_threshold1 &&
+				nr_file_pages >= (swappiness_threshold1_size << 8) &&
+				swappiness > vm_swappiness_threshold1) {
+			swappiness = vm_swappiness_threshold1;
+		} else if (swappiness_threshold2_size && vm_swappiness_threshold2 &&
+				nr_file_pages >= (swappiness_threshold2_size << 8) &&
+				swappiness > vm_swappiness_threshold2) {
+			swappiness = vm_swappiness_threshold2;
+		}
+	}
+#endif
 	if (!sc->may_swap || (mem_cgroup_get_nr_swap_pages(memcg) <= totalswap>>6)) {
 #else
 	/* If we have no swap space, do not bother scanning anon pages. */
