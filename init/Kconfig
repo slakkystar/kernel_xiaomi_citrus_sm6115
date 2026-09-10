@@ -2355,3 +2355,9 @@ config ARCH_HAS_SYSCALL_WRAPPER
 	def_bool n
 
 source "init/Kconfig.gki"
+
+config KERNEL_FAKE_UNAME
+	bool "Enable fake uname release spoofing for Android processes"
+	default y
+	help
+	  Spoofs release string for processes like netd, bpfloader, etc.
