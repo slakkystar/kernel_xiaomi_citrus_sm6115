@@ -183,8 +183,8 @@ enum {
 	SWP_SYNCHRONOUS_IO = (1 << 11),	/* synchronous IO is efficient */
 					/* add others here before... */
 #if defined(CONFIG_NANDSWAP)
-	SWP_NANDSWAP	= (1 << 14),	/* mark the device used for nandswap */
-	SWP_SCANNING	= (1 << 15),	/* refcount in scan_swap_map */
+	SWP_NANDSWAP	= (1 << 12),	/* mark the device used for nandswap */
+	SWP_SCANNING	= (1 << 13),	/* refcount in scan_swap_map */
 #else
 	SWP_SCANNING	= (1 << 12),	/* refcount in scan_swap_map */
 #endif
