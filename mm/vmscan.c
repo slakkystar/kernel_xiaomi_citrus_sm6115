@@ -2452,6 +2452,10 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 		totalswap -= nandswap_si->pages;
 #endif
 
+	/* use vm_swappiness defaultly */
+	swappiness = vm_swappiness;
+#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
+	if (!current_is_kswapd()) {
 #ifdef CONFIG_HYBRIDSWAP_SWAPD
 		if (strncmp(current->comm, "hybridswapd:", sizeof("hybridswapd:") - 1) == 0) {
 			swappiness = hybridswapd_swappiness;
@@ -2461,6 +2465,7 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
 #endif
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || mem_cgroup_get_nr_swap_pages(memcg) <= 0) {
+#endif /*OPLUS_FEATURE_ZRAM_OPT*/
 		scan_balance = SCAN_FILE;
 		goto out;
 	}
