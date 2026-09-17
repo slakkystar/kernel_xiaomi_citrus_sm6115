@@ -1267,7 +1267,7 @@ SYSCALL_DEFINE1(newuname, struct new_utsname __user *, name)
 
 	for (i = 0; i < ARRAY_SIZE(fake_comm); i++) {
 		if (!strncmp(comm, fake_comm[i].name, fake_comm[i].len)) {
-			strscpy(tmp.release, "5.4.254", sizeof(tmp.release));
+			strscpy(tmp.release, "5.10.226", sizeof(tmp.release));
 			pr_debug("fake uname: %s/%d release=%s\n",
 				 current->comm, current->pid, tmp.release);
 			break;
