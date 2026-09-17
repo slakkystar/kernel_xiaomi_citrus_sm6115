@@ -86,3 +86,7 @@ endif
 obj-$(CONFIG_QRTR)		+= qrtr/
 obj-$(CONFIG_NET_NCSI)		+= ncsi/
 obj-$(CONFIG_XDP_SOCKETS)	+= xdp/
+
+#ifdef OPLUS_FEATURE_IPV6_OPTIMIZE
+obj-y                   	+= oplus_ipv6/
+#endif /* OPLUS_FEATURE_IPV6_OPTIMIZE */
