@@ -28,6 +28,7 @@ DEFINE_STATIC_KEY_FALSE(ksu_init_rc_hook_key_false);
 DEFINE_STATIC_KEY_FALSE(ksu_input_hook_key_false);
 
 extern bool susfs_is_current_ksu_domain(void);
+extern struct cred *ksu_cred;
 
 #ifdef CONFIG_KSU_SUSFS_ENABLE_LOG
 DEFINE_STATIC_KEY_TRUE(susfs_log_key);
@@ -141,6 +142,7 @@ void susfs_run_sus_path_loop(void) {
 	struct path path;
 	struct inode *inode;
 	struct fuse_inode *fi = NULL;
+	const struct cred *saved = override_creds(ksu_cred);
 	int srcu_idx = srcu_read_lock(&susfs_srcu_sus_path_loop);
 
 	list_for_each_entry_rcu(cursor, &LH_SUS_PATH_LOOP, list) {
@@ -1452,6 +1454,17 @@ void susfs_start_sdcard_monitor_fn(void) {
 	}
 }
 
+// - defer extra susfs works to workqueue after do_umount in ksu_handle_setresuid()
+//   so that we do not block there and reduce the risk of time side channel as much as possible.
+struct work_struct susfs_extra_works;
+static void susfs_run_extra_works(struct work_struct *work) {
+	if (!ksu_cred)
+		return;
+#ifdef CONFIG_KSU_SUSFS_SUS_PATH
+	susfs_run_sus_path_loop();
+#endif // #ifdef CONFIG_KSU_SUSFS_SUS_PATH
+}
+
 /* susfs_init */
 void susfs_init(void) {
 	static_branch_enable(&ksu_init_rc_hook_key_false);
@@ -1460,6 +1473,8 @@ void susfs_init(void) {
 	static_branch_disable(&susfs_set_uname_key_true);
 	static_branch_disable(&susfs_avc_log_spoofing_key_true);
 	static_branch_disable(&susfs_set_fake_cmdline_or_bootconfig_key_true);
+    SUSFS_LOGI("Initializing susfs_extra_works\n");
+	INIT_WORK(&susfs_extra_works, susfs_run_extra_works);
 	SUSFS_LOGI("susfs is initialized! version: " SUSFS_VERSION " \n");
 }
 
