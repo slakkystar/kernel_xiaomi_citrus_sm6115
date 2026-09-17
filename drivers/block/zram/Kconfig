@@ -145,7 +145,7 @@ config OPLUS_ZRAM_OPT
 
 config HYBRIDSWAP
 	bool "Enable Hybridswap"
-	depends on MEMCG && ZRAM && !ZRAM_DEDUP && !ZRAM_WRITEBACK && !ZWB_HANDLE
+	depends on MEMCG && ZRAM && !ZRAM_DEDUP && !ZRAM_WRITEBACK
 	default n
 	help
 	  Hybridswap is a intelligent memory management solution.
