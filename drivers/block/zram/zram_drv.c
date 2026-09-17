@@ -35,7 +35,6 @@
 #include <linux/cpuhotplug.h>
 
 #include "zram_drv.h"
-#include "zram_drv_internal.h"
 #ifdef CONFIG_HYBRIDSWAP
 #include "hybridswap/hybridswap.h"
 #endif
