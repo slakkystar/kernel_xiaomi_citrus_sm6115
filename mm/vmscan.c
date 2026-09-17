@@ -63,6 +63,8 @@
 
 #include "internal.h"
 
+#include <linux/proc_fs.h>
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
 
