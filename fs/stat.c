@@ -23,15 +23,6 @@
 
 #include "mount.h"
 
-#ifdef CONFIG_KSU_SUSFS
-#include <linux/susfs_def.h>
-#include <linux/version.h>
-#endif
-
-#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
-extern void susfs_sus_kstat_spoof_generic_fillattr(struct inode *inode, struct kstat *stat);
-#endif
-
 /**
  * generic_fillattr - Fill in the basic attributes from the inode struct
  * @inode: Inode to use as the source
@@ -56,13 +47,6 @@ void generic_fillattr(struct inode *inode, struct kstat *stat)
 	stat->ctime = inode->i_ctime;
 	stat->blksize = i_blocksize(inode);
 	stat->blocks = inode->i_blocks;
-#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
-	susfs_sus_kstat_spoof_generic_fillattr(inode, stat);
-#endif
-	if (IS_NOATIME(inode))
-		stat->result_mask &= ~STATX_ATIME;
-	if (IS_AUTOMOUNT(inode))
-		stat->attributes |= STATX_ATTR_AUTOMOUNT;
 }
 EXPORT_SYMBOL(generic_fillattr);
 
@@ -98,18 +82,9 @@ int vfs_getattr_nosec(const struct path *path, struct kstat *stat,
 		stat->attributes |= STATX_ATTR_DAX;
 
 	if (inode->i_op->getattr)
-#ifdef CONFIG_KSU_SUSFS_SUS_KSTAT
-	{
-		int err = inode->i_op->getattr(path, stat, request_mask,
-					    query_flags);
-		if (!err)
-			susfs_sus_kstat_spoof_generic_fillattr(inode, stat);
-		return err;
-	}
-#else
 		return inode->i_op->getattr(path, stat, request_mask,
 					    query_flags);
-#endif
+
 	generic_fillattr(inode, stat);
 	return 0;
 }
