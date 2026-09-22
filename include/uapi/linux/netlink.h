@@ -34,10 +34,6 @@
 
 #define MAX_LINKS 32		
 
-//#ifdef OPLUS_FEATURE_IPV6_OPTIMIZE
-#define NETLINK_OPLUS_IPV6_RTO  42
-//#endif /* OPLUS_FEATURE_IPV6_OPTIMIZE */
-
 struct sockaddr_nl {
 	__kernel_sa_family_t	nl_family;	/* AF_NETLINK	*/
 	unsigned short	nl_pad;		/* zero		*/
