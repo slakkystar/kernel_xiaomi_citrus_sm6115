@@ -2,6 +2,9 @@
 /*
  * Scheduler internal types and methods:
  */
+#ifndef __KERNEL_SCHED_H__
+#define __KERNEL_SCHED_H__
+
 #include <linux/sched.h>
 
 #include <linux/sched/autogroup.h>
@@ -3286,3 +3289,5 @@ struct sched_avg_stats {
 	int nr_scaled;
 };
 extern void sched_get_nr_running_avg(struct sched_avg_stats *stats);
+
+#endif // __KERNEL_SCHED_H__
