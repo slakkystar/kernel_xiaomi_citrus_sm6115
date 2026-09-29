@@ -28,3 +28,7 @@ obj-$(CONFIG_ARCH_ZX)		+= zte/
 
 #Add for NandSwap
 obj-$(CONFIG_NANDSWAP)		+= oplus/oplus_nandswap/
+
+#ifdef OPLUS_FEATURE_GAME_OPT
+obj-$(CONFIG_OPLUS_FEATURE_GAME_OPT) += oplus/game_opt/
+#endif /* OPLUS_FEATURE_GAME_OPT */
