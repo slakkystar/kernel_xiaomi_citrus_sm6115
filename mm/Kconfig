@@ -906,3 +906,7 @@ config DYNAMIC_TUNNING_SWAPPINESS
 	default n
 	help
 	  tunning swappiess depends on file_pages size
+
+#ifdef OPLUS_FEATURE_MULTI_KSWAPD
+source "mm/multi_kswapd/Kconfig"
+#endif /*OPLUS_FEATURE_MULTI_KSWAPD*/

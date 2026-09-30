@@ -111,3 +111,7 @@ obj-$(CONFIG_HMM) += hmm.o
 obj-$(CONFIG_MEMFD_CREATE) += memfd.o
 obj-$(CONFIG_MEMFD_ASHMEM_SHIM) += memfd-ashmem-shim.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
+
+#ifdef OPLUS_FEATURE_MULTI_KSWAPD
+obj-$(CONFIG_OPLUS_MULTI_KSWAPD) += multi_kswapd/
+#endif /*OPLUS_FEATURE_MULTI_KSWAPD*/
