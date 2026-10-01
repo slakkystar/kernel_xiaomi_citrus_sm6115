@@ -3138,6 +3138,9 @@ void mark_free_pages(struct zone *zone)
 	unsigned long flags;
 	unsigned int order, t;
 	struct page *page;
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+    unsigned int flc;
+#endif
 
 	if (zone_is_empty(zone))
 		return;
@@ -3162,8 +3165,14 @@ void mark_free_pages(struct zone *zone)
 		}
 
 	for_each_migratetype_order(order, t) {
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        for (flc = 0; flc < FREE_AREA_COUNTS; flc++) {
+		    list_for_each_entry(page,
+				    &zone->free_areai[flc][order].free_list[t], lru) {
+#else
 		list_for_each_entry(page,
 				&zone->free_area[order].free_list[t], lru) {
+#endif
 			unsigned long i;
 
 			pfn = page_to_pfn(page);
@@ -3175,6 +3184,9 @@ void mark_free_pages(struct zone *zone)
 				swsusp_set_page_free(pfn_to_page(pfn + i));
 			}
 		}
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+    }
+#endif
 	}
 	spin_unlock_irqrestore(&zone->lock, flags);
 }
@@ -5631,6 +5643,9 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 	int cpu;
 	struct zone *zone;
 	pg_data_t *pgdat;
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+    int flc = 0;
+#endif
 
 	for_each_populated_zone(zone) {
 		if (show_mem_node_skip(filter, zone_to_nid(zone), nodemask))
@@ -5782,7 +5797,11 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 
 	for_each_populated_zone(zone) {
 		unsigned int order;
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+		unsigned long nr[FREE_AREA_COUNTS][MAX_ORDER], flags, total = 0;
+#else
 		unsigned long nr[MAX_ORDER], flags, total = 0;
+#endif
 		unsigned char types[MAX_ORDER];
 
 		if (show_mem_node_skip(filter, zone_to_nid(zone), nodemask))
@@ -5791,26 +5810,51 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 		printk(KERN_CONT "%s: ", zone->name);
 
 		spin_lock_irqsave(&zone->lock, flags);
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        for (flc = 0 ; flc < FREE_AREA_COUNTS; flc++) {
+#endif
 		for (order = 0; order < MAX_ORDER; order++) {
-			struct free_area *area = &zone->free_area[order];
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        struct free_area *area = &zone->free_area[flc][order];
+#else
+        struct free_area *area = &zone->free_area[order];
+#endif
 			int type;
 
-			nr[order] = area->nr_free;
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+			nr[flc][order] = area->nr_free;
+			total += nr[flc][order] << order;
+#else
+                        nr[order] = area->nr_free;
 			total += nr[order] << order;
-
+#endif
 			types[order] = 0;
 			for (type = 0; type < MIGRATE_TYPES; type++) {
 				if (!list_empty(&area->free_list[type]))
 					types[order] |= 1 << type;
 			}
 		}
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        }
+#endif
 		spin_unlock_irqrestore(&zone->lock, flags);
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        for (flc = 0 ; flc < FREE_AREA_COUNTS; flc++) {
+#endif
 		for (order = 0; order < MAX_ORDER; order++) {
 			printk(KERN_CONT "%lu*%lukB ",
-			       nr[order], K(1UL) << order);
-			if (nr[order])
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+			       nr[flc][order], K(1UL) << order);
+			if (nr[flc][order])
+#else
+                               nr[order], K(1UL) << order);
+                        if (nr[order])
+#endif
 				show_migration_types(types[order]);
 		}
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        }
+#endif
 		printk(KERN_CONT "= %lukB\n", K(total));
 	}
 
@@ -8909,6 +8953,9 @@ __offline_isolated_pages(unsigned long start_pfn, unsigned long end_pfn)
 	unsigned int order, i;
 	unsigned long pfn;
 	unsigned long flags;
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+    unsigned int flc;
+#endif
 	/* find the first valid pfn */
 	for (pfn = start_pfn; pfn < end_pfn; pfn++)
 		if (pfn_valid(pfn))
@@ -8944,7 +8991,12 @@ __offline_isolated_pages(unsigned long start_pfn, unsigned long end_pfn)
 #endif
 		list_del(&page->lru);
 		rmv_page_order(page);
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+        flc = page_to_flc(page);
+        zone->free_area[flc][order].nr_free--;
+#else
 		zone->free_area[order].nr_free--;
+#endif
 		for (i = 0; i < (1 << order); i++)
 			SetPageReserved((page+i));
 		pfn += (1 << order);
