@@ -949,3 +949,9 @@ config SHRINK_LRU_TRYLOCK
 #ifdef OPLUS_FEATURE_MULTI_KSWAPD
 source "mm/multi_kswapd/Kconfig"
 #endif /*OPLUS_FEATURE_MULTI_KSWAPD*/
+
+config PROACTIVE_COMPACT
+	tristate "trigger memory compact based on fragmentation index"
+	default n
+	help
+	  trigger memory compact based on fragmentation index
