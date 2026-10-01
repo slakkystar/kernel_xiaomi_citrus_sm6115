@@ -1792,7 +1792,14 @@ int reclaim_address_space(struct address_space *mapping,
 		}
 	}
 	rcu_read_unlock();
+#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
+	/* relciam memory with scan walk info
+	 * while PROCESS_RECLAIM_ENHANCE is enabled.
+	 */
+	reclaimed = reclaimed = reclaim_pages_from_list(&page_list, NULL, NULL);
+#else
 	reclaimed = reclaim_pages_from_list(&page_list, NULL);
+#endif
 	rp->nr_reclaimed += reclaimed;
 
 	if (rp->nr_scanned >= rp->nr_to_reclaim)
@@ -1855,7 +1862,12 @@ cont:
 			break;
 	}
 	pte_unmap_unlock(pte - 1, ptl);
+#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
+	reclaimed = reclaim_pages_from_list(&page_list, vma, NULL);
+#else
 	reclaimed = reclaim_pages_from_list(&page_list, vma);
+#endif
+
 	rp->nr_reclaimed += reclaimed;
 	rp->nr_to_reclaim -= reclaimed;
 	if (rp->nr_to_reclaim < 0)
