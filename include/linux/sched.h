@@ -1734,6 +1734,9 @@ extern struct pid *cad_pid;
 /*
  * Per process flags
  */
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+#define PF_SHRNIK_LRUVECD	0x00000001      /* Early kill for mce process policy */
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 #define PF_IDLE			0x00000002	/* I am an IDLE thread */
 #define PF_EXITING		0x00000004	/* Getting shut down */
 #define PF_VCPU			0x00000010	/* I'm a virtual CPU */

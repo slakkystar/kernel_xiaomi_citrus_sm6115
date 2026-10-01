@@ -609,4 +609,13 @@ static inline bool is_migrate_highatomic_page(struct page *page)
 
 void setup_zone_pageset(struct zone *zone);
 extern struct page *alloc_new_node_page(struct page *page, unsigned long node);
+
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+extern bool wakeup_kshrink_lruvecd(struct list_head *page_list);
+extern void setpage_reclaim_trylock(struct page *page);
+extern void clearpage_reclaim_trylock(struct page *page, bool clear_skipped);
+extern bool page_reclaim_trylock_fail(struct page *page);
+extern bool reclaim_page_trylock(struct page *page, struct rw_semaphore *sem,
+				bool *got_lock);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 #endif	/* __MM_INTERNAL_H */

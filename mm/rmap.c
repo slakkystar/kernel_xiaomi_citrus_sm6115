@@ -536,6 +536,12 @@ struct anon_vma *page_lock_anon_vma_read(struct page *page)
 		}
 		goto out;
 	}
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+	if (reclaim_page_trylock(page, NULL, NULL)) {
+		anon_vma = NULL;
+		goto out;
+	}
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 
 	/* trylock failed, we got to sleep */
 	if (!atomic_inc_not_zero(&anon_vma->refcount)) {
@@ -1768,6 +1774,9 @@ bool try_to_unmap(struct page *page, enum ttu_flags flags,
 		rmap_walk_locked(page, &rwc);
 	else
 		rmap_walk(page, &rwc);
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+	clearpage_reclaim_trylock(page, false);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 
 	/*
 	 * When racing against e.g. zap_pte_range() on another cpu,
@@ -1917,6 +1926,9 @@ static void rmap_walk_file(struct page *page, struct rmap_walk_control *rwc,
 	pgoff_t pgoff_start, pgoff_end;
 	struct vm_area_struct *vma;
 	unsigned long address;
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+	bool got_lock = false;
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 
 	/*
 	 * The page lock not only makes sure that page->mapping cannot
@@ -1931,8 +1943,17 @@ static void rmap_walk_file(struct page *page, struct rmap_walk_control *rwc,
 
 	pgoff_start = page_to_pgoff(page);
 	pgoff_end = pgoff_start + hpage_nr_pages(page) - 1;
-	if (!locked)
-		i_mmap_lock_read(mapping);
+	if (!locked) {
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+		if (reclaim_page_trylock(page, &mapping->i_mmap_rwsem, &got_lock)) {
+			if (!got_lock)
+				return;
+		} else
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
+		{
+			i_mmap_lock_read(mapping);
+		}
+	}
 
 	if (rwc->target_vma) {
 		address = vma_address(page, rwc->target_vma);
