@@ -75,6 +75,9 @@
 #include <asm/div64.h>
 #include "internal.h"
 
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+#include "multi_freearea.h"
+#endif
 atomic_long_t kswapd_waiters = ATOMIC_LONG_INIT(0);
 
 /* prevent >1 _updater_ of zone percpu pageset ->high and ->batch fields */
@@ -6210,10 +6213,21 @@ not_early:
 static void __meminit zone_init_free_lists(struct zone *zone)
 {
 	unsigned int order, t;
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+    int flc;
+
+    for (flc = 0; flc < FREE_AREA_COUNTS; flc++) {
+        for_each_migratetype_order(order, t) {
+            INIT_LIST_HEAD(&zone->free_area[flc][order].free_list[t]);
+            zone->free_area[flc][order].nr_free = 0;
+        }
+    }
+#else
 	for_each_migratetype_order(order, t) {
 		INIT_LIST_HEAD(&zone->free_area[order].free_list[t]);
 		zone->free_area[order].nr_free = 0;
 	}
+#endif
 }
 
 #ifndef __HAVE_ARCH_MEMMAP_INIT
@@ -6999,6 +7013,10 @@ static void __init free_area_init_core(struct pglist_data *pgdat)
 		set_pageblock_order();
 		setup_usemap(pgdat, zone, zone_start_pfn, size);
 		init_currently_empty_zone(zone, zone_start_pfn, size);
+#if defined(OPLUS_FEATURE_MULTI_FREEAREA) && defined(CONFIG_PHYSICAL_ANTI_FRAGMENTATION)
+	        ajust_zone_label(zone);
+#endif
+
 		memmap_init(size, nid, j, zone_start_pfn);
 	}
 }
