@@ -41,6 +41,11 @@
 void page_writeback_init(void);
 
 vm_fault_t do_swap_page(struct vm_fault *vmf);
+#ifdef CONFIG_KSHRINK_SLABD
+extern bool wakeup_shrink_slabd(gfp_t gfp_mask, int nid,
+				 struct mem_cgroup *memcg,
+				 int priority, struct reclaim_state *reclaim_state);
+#endif
 
 void free_pgtables(struct mmu_gather *tlb, struct vm_area_struct *start_vma,
 		unsigned long floor, unsigned long ceiling);

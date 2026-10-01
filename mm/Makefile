@@ -115,6 +115,7 @@ obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
 #ifdef OPLUS_FEATURE_MULTI_KSWAPD
 obj-$(CONFIG_OPLUS_MULTI_KSWAPD) += multi_kswapd/
 #endif /*OPLUS_FEATURE_MULTI_KSWAPD*/
+obj-$(CONFIG_KSHRINK_SLABD) += kshrink_slabd.o
 #if defined(OPLUS_FEATURE_PROCESS_RECLAIM)
 ifeq ($(OPLUS_FEATURE_PROCESS_RECLAIM), yes)
 obj-$(CONFIG_PROCESS_RECLAIM_ENHANCE) += process_mm_reclaim.o

@@ -920,6 +920,12 @@ config PROCESS_RECLAIM_ENHANCE
 	 Any other vaule, please reference PROCESS_RECLAIM.
 #endif /* OPLUS_FEATURE_PROCESS_RECLAIM */
 
+config KSHRINK_SLABD
+	bool "enable async shrink_lruvecd"
+	default n
+	help
+	  enable async shrink_lruvecd
+
 config DYNAMIC_TUNNING_SWAPPINESS
 	bool "tunning swappiess depends on file_pages size"
 	default n
