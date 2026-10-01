@@ -920,6 +920,14 @@ config PROCESS_RECLAIM_ENHANCE
 	 Any other vaule, please reference PROCESS_RECLAIM.
 #endif /* OPLUS_FEATURE_PROCESS_RECLAIM */
 
+#ifdef OPLUS_FEATURE_MULTI_FREEAREA
+config PHYSICAL_ANTI_FRAGMENTATION
+	bool "Physical memory anti-fragmentation"
+	default y
+	help
+	 Turn on the function of Physical memory anti-fragmentation.
+#endif /* OPLUS_FEATURE_MULTI_FREEAREA */
+
 config KSHRINK_SLABD
 	bool "enable async shrink_lruvecd"
 	default n
