@@ -126,6 +126,15 @@ obj-$(CONFIG_HAS_IOMEM) += iomem.o
 obj-$(CONFIG_ZONE_DEVICE) += memremap.o
 obj-$(CONFIG_RSEQ) += rseq.o
 
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+obj-y += sched_assist/
+obj-$(CONFIG_OPLUS_FEATURE_FRAME_BOOST) += tuning/
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+obj-y += special_opt/
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+
 $(obj)/configs.o: $(obj)/config_data.h
 
 targets += config_data.gz

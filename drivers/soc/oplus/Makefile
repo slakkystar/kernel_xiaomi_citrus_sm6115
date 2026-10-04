@@ -1,0 +1,1 @@
+obj-$(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)    += midas/

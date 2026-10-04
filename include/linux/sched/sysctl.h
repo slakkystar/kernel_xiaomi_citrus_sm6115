@@ -170,5 +170,9 @@ extern int sysctl_sched_lib_name_handler(struct ctl_table *table, int write,
 					 void __user *buffer, size_t *lenp,
 					 loff_t *ppos);
 extern bool is_sched_lib_based_app(pid_t pid);
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+extern int sysctl_sched_assist_scene_handler(struct ctl_table *table, int write,
+	void __user *buffer, size_t *lenp, loff_t *ppos);
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 
 #endif /* _LINUX_SCHED_SYSCTL_H */

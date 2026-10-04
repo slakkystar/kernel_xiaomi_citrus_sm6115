@@ -46,6 +46,10 @@
 #include "blk-mq-sched.h"
 #include "blk-rq-qos.h"
 
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+#include "uxio_first/uxio_first_opt.h"
+#endif
+
 #ifdef CONFIG_DEBUG_FS
 struct dentry *blk_debugfs_root;
 #endif
@@ -190,6 +194,9 @@ void blk_rq_init(struct request_queue *q, struct request *rq)
 	memset(rq, 0, sizeof(*rq));
 
 	INIT_LIST_HEAD(&rq->queuelist);
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+	INIT_LIST_HEAD(&rq->ux_fg_bg_list);
+#endif
 	INIT_LIST_HEAD(&rq->timeout_list);
 	rq->cpu = -1;
 	rq->q = q;
@@ -1016,6 +1023,11 @@ struct request_queue *blk_alloc_queue_node(gfp_t gfp_mask, int node_id,
 		return NULL;
 
 	INIT_LIST_HEAD(&q->queue_head);
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+	INIT_LIST_HEAD(&q->ux_head);
+	INIT_LIST_HEAD(&q->fg_head);
+	INIT_LIST_HEAD(&q->bg_head);
+#endif
 	q->last_merge = NULL;
 	q->end_sector = 0;
 	q->boundary_rq = NULL;
@@ -1713,8 +1725,11 @@ void __blk_put_request(struct request_queue *q, struct request *req)
 	/* this is a bio leak */
 	WARN_ON(req->bio != NULL);
 
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+	rq_qos_done(q, req, (bool)((req->cmd_flags & REQ_FG)||(req->cmd_flags & REQ_UX)));
+#else
 	rq_qos_done(q, req);
-
+#endif
 	/*
 	 * Request may not have originated from ll_rw_blk. if not,
 	 * it didn't come out of our reserved rq pools
@@ -1928,6 +1943,12 @@ void blk_init_request_from_bio(struct request *req, struct bio *bio)
 
 	if (bio->bi_opf & REQ_RAHEAD)
 		req->cmd_flags |= REQ_FAILFAST_MASK;
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+	if (bio->bi_opf & REQ_UX)
+		req->cmd_flags |= REQ_UX;
+	else if (bio->bi_opf & REQ_FG)
+		req->cmd_flags |= REQ_FG;
+#endif
 
 	req->__sector = bio->bi_iter.bi_sector;
 	if (ioprio_valid(bio_prio(bio)))
@@ -2522,7 +2543,12 @@ blk_qc_t submit_bio(struct bio *bio)
 				bio_devname(bio, b), count);
 		}
 	}
-
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+	if (test_task_ux(current))
+		bio->bi_opf |= REQ_UX;
+	else if (high_prio_for_task(current))
+		bio->bi_opf |= REQ_FG;
+#endif
 	/*
 	 * If we're reading data that is part of the userspace
 	 * workingset, count submission time as memory stall. When the
@@ -2730,7 +2756,11 @@ void blk_account_io_done(struct request *req, u64 now)
  * Don't process normal requests when queue is suspended
  * or in the process of suspending/resuming
  */
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+bool blk_pm_allow_request(struct request *rq)
+#else
 static bool blk_pm_allow_request(struct request *rq)
+#endif
 {
 	switch (rq->q->rpm_status) {
 	case RPM_RESUMING:
@@ -2743,7 +2773,11 @@ static bool blk_pm_allow_request(struct request *rq)
 	}
 }
 #else
+ #if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+ bool blk_pm_allow_request(struct request *rq)
+ #else
 static bool blk_pm_allow_request(struct request *rq)
+#endif
 {
 	return true;
 }
@@ -2794,14 +2828,24 @@ static struct request *elv_next_request(struct request_queue *q)
 	WARN_ON_ONCE(q->mq_ops);
 
 	while (1) {
-		list_for_each_entry(rq, &q->queue_head, queuelist) {
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+		if (likely(sysctl_uxio_io_opt)){
+			rq = smart_peek_request(q);
+			if (rq)
+				return rq;
+		} else
+		{
+#endif
+			list_for_each_entry(rq, &q->queue_head, queuelist) {
 			if (blk_pm_allow_request(rq))
 				return rq;
 
 			if (rq->rq_flags & RQF_SOFTBARRIER)
 				break;
 		}
-
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+	}
+#endif
 		/*
 		 * Flush request is running and flush request isn't queueable
 		 * in the drive, we can hold the queue till flush request is

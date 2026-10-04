@@ -14,6 +14,9 @@
 #ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
 #include "../../drivers/soc/oplus/game_opt/game_ctrl.h"
 #endif
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+#include "../tuning/frame_group.h"
+#endif
 
 #include "walt.h"
 
@@ -1102,6 +1105,9 @@ static void update_curr_rt(struct rq *rq)
 #ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
 	g_update_task_runtime(curr, delta_exec);
 #endif
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+	fbg_update_rt_util_hook(NULL, curr, delta_exec);
+#endif
 
 	if (!rt_bandwidth_enabled())
 		return;
@@ -1899,6 +1905,10 @@ retry:
 
 			if (__cpu_overutilized(cpu, tutil))
 				continue;
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+			if (!fbg_rt_task_fits_capacity(task, cpu))
+				continue;
+#endif
 
 			util = cpu_util(cpu);
 
@@ -2474,7 +2484,10 @@ static void pull_rt_task(struct rq *this_rq)
 			 */
 			if (p->prio < src_rq->curr->prio)
 				goto skip;
-
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+			if (!fbg_rt_task_fits_capacity(p, this_cpu))
+				goto skip;
+#endif
 			resched = true;
 
 			deactivate_task(src_rq, p, 0);

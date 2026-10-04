@@ -114,3 +114,7 @@ config PROC_CMDLINE_APPEND_ANDROID_FORCE_NORMAL_BOOT
 
 	  This is a workaround, and it's generally required for Android P
 	  launched A/B devices to migrate to Android Q style System-as-root.
+
+#ifdef OPLUS_FEATURE_CPU_JANKINFO
+source "fs/proc/sched_info/Kconfig"
+#endif /* OPLUS_FEATURE_CPU_JANKINFO */

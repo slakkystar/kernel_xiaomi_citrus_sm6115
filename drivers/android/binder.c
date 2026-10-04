@@ -83,7 +83,18 @@
 #include "binder_alloc.h"
 #include "binder_internal.h"
 #include "binder_trace.h"
+
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+#include "../../include/linux/tuning/frame_group.h"
+#endif
 #include "dbitmap.h"
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+#include <linux/sched_assist/sched_assist_binder.h>
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)
+#include <linux/sched_info/osi_tasktrack.h>
+#endif
 
 static HLIST_HEAD(binder_deferred_list);
 static DEFINE_MUTEX(binder_deferred_lock);
@@ -139,6 +150,40 @@ module_param_named(devices, binder_devices_param, charp, 0444);
 
 static DECLARE_WAIT_QUEUE_HEAD(binder_user_error_wait);
 static int binder_stop_on_user_error;
+
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+
+#include <linux/notifier.h>
+#ifndef CONFIG_OPLUS_FEATURE_CPU_JANKINFO
+#define OPLUS_MAX_SERVICE_NAME_LEN    32
+#endif
+#define OPLUS_MAGIC_SERVICE_NAME_OFFSET 76
+
+struct binder_notify {
+	struct task_struct *caller_task;
+	struct task_struct *binder_task;
+	char service_name[OPLUS_MAX_SERVICE_NAME_LEN];
+	bool pending_async;
+};
+
+static ATOMIC_NOTIFIER_HEAD(binderevent_notif_chain);
+
+int register_binderevent_notifier(struct notifier_block *nb) {
+    return atomic_notifier_chain_register(&binderevent_notif_chain, nb);
+}
+EXPORT_SYMBOL_GPL(register_binderevent_notifier);
+
+int unregister_binderevent_notifier(struct notifier_block *nb) {
+	return atomic_notifier_chain_unregister(&binderevent_notif_chain, nb);
+}
+EXPORT_SYMBOL_GPL(unregister_binderevent_notifier);
+
+int call_binderevent_notifiers(unsigned long val, void *v) {
+	return atomic_notifier_call_chain(&binderevent_notif_chain, val, v);
+}
+EXPORT_SYMBOL_GPL(call_binderevent_notifiers);
+
+#endif // #if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
 
 static int binder_set_stop_on_user_error(const char *val,
 					 const struct kernel_param *kp)
@@ -370,6 +415,9 @@ struct binder_node {
 	};
 	bool has_async_transaction;
 	struct list_head async_todo;
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+	char service_name[OPLUS_MAX_SERVICE_NAME_LEN];
+#endif
 };
 
 struct binder_ref_death {
@@ -554,6 +602,9 @@ struct binder_proc {
 	bool async_recv;
 	wait_queue_head_t freeze_wait;
 	struct dbitmap dmap;
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	int proc_type;
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 	struct list_head todo;
 	struct binder_stats stats;
 	struct list_head delivered_death;
@@ -683,6 +734,58 @@ struct binder_object {
 		struct binder_fd_array_object fdao;
 	};
 };
+
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+
+static void oplus_parse_service_name(struct binder_transaction_data *tr,
+		struct binder_proc *proc,
+		char *name) {
+	unsigned int i, len = 0;
+	char *tmp;
+	char c;
+	char sname[OPLUS_MAX_SERVICE_NAME_LEN];
+
+	if (NULL != tr && tr->target.handle == 0 && NULL != proc && NULL != proc->context) {
+		if (!strcmp(proc->context->name, "hwbinder")) {
+			strcpy(sname, "hwbinderService");
+		} else {
+			for (i = 0; (2 * i) < tr->data_size; i++) {
+				if ((2 * i) < OPLUS_MAGIC_SERVICE_NAME_OFFSET) {
+					continue;
+				}
+				if (len >= (OPLUS_MAX_SERVICE_NAME_LEN - 1))
+					break;
+				tmp = (char *)(uintptr_t)(tr->data.ptr.buffer + (2*i));
+				get_user(c, tmp);
+				if (c >= 32 && c <= 126) { // visible character range [32, 126]
+					if (len < OPLUS_MAX_SERVICE_NAME_LEN - 1)
+						len += sprintf(sname + len, "%c", c);
+					else
+						break;
+				}
+				if ('\0' == c) {
+					break;
+				}
+			}
+			sname[len] = '\0';
+		}
+		pr_info("context.name[%s] tr.size:%lu service:%s\n",
+			proc->context->name, (unsigned long)tr->data_size, sname);
+	} else {
+		if (NULL != tr && 0 != tr->target.handle) {
+			sprintf(sname, "AnonymousCallback");
+		} else {
+			sprintf(sname, "unknown");
+		}
+	}
+
+	if (NULL != name){
+		strncpy(name, sname, OPLUS_MAX_SERVICE_NAME_LEN);
+		name[OPLUS_MAX_SERVICE_NAME_LEN-1] = '\0';
+	}
+}
+
+#endif // #if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
 
 /**
  * binder_proc_lock() - Acquire outer lock for given binder_proc
@@ -1261,10 +1364,17 @@ static void binder_restore_priority(struct task_struct *task,
 	binder_do_set_priority(task, desired, /* verify = */ false);
 }
 
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+static void binder_transaction_priority(struct binder_thread *thread, struct task_struct *task,
+					struct binder_transaction *t,
+					struct binder_priority node_prio,
+					bool inherit_rt)
+#else
 static void binder_transaction_priority(struct task_struct *task,
 					struct binder_transaction *t,
 					struct binder_priority node_prio,
 					bool inherit_rt)
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 {
 	struct binder_priority desired_prio = t->priority;
 
@@ -1275,6 +1385,13 @@ static void binder_transaction_priority(struct task_struct *task,
 	t->saved_priority.sched_policy = task->policy;
 	t->saved_priority.prio = task->normal_prio;
 
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	//NOTE: if task is main thread, and doesn't join pool as a binder thread,
+	//DON'T actually change priority in binder transaction.
+	if ((task->tgid == task->pid) && !(thread->looper & BINDER_LOOPER_STATE_ENTERED)) {
+		return;
+	}
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 	if (!inherit_rt && is_rt_policy(desired_prio.sched_policy)) {
 		desired_prio.prio = NICE_TO_PRIO(0);
 		desired_prio.sched_policy = SCHED_NORMAL;
@@ -2671,9 +2788,16 @@ static void binder_transaction_buffer_release(struct binder_proc *proc,
 	}
 }
 
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+static int binder_translate_binder(struct binder_transaction_data *tr,
+				   struct flat_binder_object *fp,
+				   struct binder_transaction *t,
+				   struct binder_thread *thread)
+#else
 static int binder_translate_binder(struct flat_binder_object *fp,
 				   struct binder_transaction *t,
 				   struct binder_thread *thread)
+#endif
 {
 	struct binder_node *node;
 	struct binder_proc *proc = thread->proc;
@@ -2686,6 +2810,9 @@ static int binder_translate_binder(struct flat_binder_object *fp,
 		node = binder_new_node(proc, fp);
 		if (!node)
 			return -ENOMEM;
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+		oplus_parse_service_name(tr, proc, node->service_name);
+#endif
 	}
 	if (fp->cookie != node->cookie) {
 		binder_user_error("%d:%d sending u%016llx node %d, cookie mismatch %016llx != %016llx\n",
@@ -2976,6 +3103,13 @@ static int binder_fixup_parent(struct binder_transaction *t,
 	return 0;
 }
 
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+static inline bool is_binder_proc_sf(struct binder_proc *proc)
+{
+	return proc && proc->tsk && strstr(proc->tsk->comm, "surfaceflinger")
+		&& (task_uid(proc->tsk).val == 1000);
+}
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 /**
  * binder_proc_transaction() - sends a transaction to a process and wakes it up
  * @t:		transaction to send
@@ -2994,6 +3128,9 @@ static int binder_fixup_parent(struct binder_transaction *t,
  *		BR_DEAD_REPLY if the target process or thread is dead
  *		BR_FROZEN_REPLY if the target process or thread is frozen
  */
+#if defined(OPLUS_FEATURE_SCHED_ASSIST)
+extern bool is_sf(struct task_struct *p);
+#endif
 static int binder_proc_transaction(struct binder_transaction *t,
 				    struct binder_proc *proc,
 				    struct binder_thread *thread)
@@ -3002,6 +3139,13 @@ static int binder_proc_transaction(struct binder_transaction *t,
 	struct binder_priority node_prio;
 	bool oneway = !!(t->flags & TF_ONE_WAY);
 	bool pending_async = false;
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+	struct binder_notify binder_notify_obj;
+#endif
+#if defined(OPLUS_FEATURE_SCHED_ASSIST)
+        struct task_struct *grp_leader = NULL;
+        struct task_struct *curr = current;
+#endif
 
 	BUG_ON(!node);
 	binder_node_lock(node);
@@ -3033,18 +3177,69 @@ static int binder_proc_transaction(struct binder_transaction *t,
 	if (!thread && !pending_async)
 		thread = binder_select_thread_ilocked(proc);
 
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+	if (NULL != node && NULL != proc->tsk) {
+		binder_notify_obj.caller_task = current;
+		strncpy(binder_notify_obj.service_name, node->service_name, OPLUS_MAX_SERVICE_NAME_LEN);
+		binder_notify_obj.service_name[OPLUS_MAX_SERVICE_NAME_LEN-1] = '\0';
+		binder_notify_obj.pending_async = pending_async;
+	}
+#endif
+
 	if (thread) {
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+		if (NULL != thread && NULL != thread->task) {
+			binder_notify_obj.binder_task = thread->task;
+			call_binderevent_notifiers(0, (void *)&binder_notify_obj);
+		}
+#endif
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+		binder_transaction_priority(thread, thread->task, t, node_prio,
+					    node->inherit_rt);
+#else
 		binder_transaction_priority(thread->task, t, node_prio,
 					    node->inherit_rt);
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 		binder_enqueue_thread_work_ilocked(thread, &t->work);
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+		if (sysctl_sched_assist_enabled) {
+			if (!oneway || proc->proc_type)
+				binder_set_inherit_ux(thread->task, current);
+		}
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 	} else if (!pending_async) {
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+		if (NULL != proc && NULL != proc->tsk) {
+			binder_notify_obj.binder_task = proc->tsk;
+			call_binderevent_notifiers(0, (void *)&binder_notify_obj);
+		}
+#endif
 		binder_enqueue_work_ilocked(&t->work, &proc->todo);
 	} else {
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+		if (NULL != proc && NULL != proc->tsk) {
+			binder_notify_obj.binder_task = proc->tsk;
+			call_binderevent_notifiers(0, (void *)&binder_notify_obj);
+		}
+#endif
 		binder_enqueue_work_ilocked(&t->work, &node->async_todo);
 	}
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+	fbg_binder_wakeup_hook(NULL, current, proc->tsk, thread ? thread->task :NULL, t->code,
+			pending_async, !oneway);
+#endif
 
-	if (!pending_async)
+	if (!pending_async) {
+#if defined(OPLUS_FEATURE_SCHED_ASSIST)
+			if (thread && thread->task) {
+				grp_leader = thread->task->group_leader;
+				if (grp_leader && is_sf(curr) && test_task_ux(thread->task->group_leader) && oneway) {
+					set_once_ux(thread->task);
+				}
+                        }
+#endif
 		binder_wakeup_thread_ilocked(proc, thread, !oneway /* sync */);
+	}
 
 	proc->outstanding_txns++;
 	binder_inner_proc_unlock(proc);
@@ -3511,7 +3706,11 @@ static void binder_transaction(struct binder_proc *proc,
 			struct flat_binder_object *fp;
 
 			fp = to_flat_binder_object(hdr);
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+			ret = binder_translate_binder(tr, fp, t, thread);
+#else
 			ret = binder_translate_binder(fp, t, thread);
+#endif
 			if (ret < 0) {
 				return_error = BR_FAILED_REPLY;
 				return_error_param = ret;
@@ -3684,6 +3883,14 @@ static void binder_transaction(struct binder_proc *proc,
 		binder_inner_proc_unlock(target_proc);
 
 		wake_up_interruptible_sync(&target_thread->wait);
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+		if (sysctl_sched_assist_enabled && !proc->proc_type) {
+			binder_unset_inherit_ux(thread->task);
+		}
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+		fbg_binder_restore_priority_hook(NULL, in_reply_to, current);
+#endif
 		binder_restore_priority(current, in_reply_to->saved_priority);
 		binder_free_transaction(in_reply_to);
 	} else if (!(t->flags & TF_ONE_WAY)) {
@@ -3796,6 +4003,9 @@ err_invalid_target_handle:
 
 	BUG_ON(thread->return_error.cmd != BR_OK);
 	if (in_reply_to) {
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+		fbg_binder_restore_priority_hook(NULL, in_reply_to, current);
+#endif
 		binder_restore_priority(current, in_reply_to->saved_priority);
 		thread->return_error.cmd = BR_TRANSACTION_COMPLETE;
 		binder_enqueue_thread_work(thread, &thread->return_error.work);
@@ -4328,9 +4538,27 @@ static int binder_wait_for_work(struct binder_thread *thread,
 		prepare_to_wait(&thread->wait, &wait, TASK_INTERRUPTIBLE);
 		if (binder_has_work_ilocked(thread, do_proc_work))
 			break;
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+		if (do_proc_work) {
+			list_add(&thread->waiting_thread_node,
+				 &proc->waiting_threads);
+
+			if (sysctl_sched_assist_enabled) {
+				binder_unset_inherit_ux(thread->task);
+			}
+		}
+#else /* OPLUS_FEATURE_SCHED_ASSIST */
 		if (do_proc_work)
 			list_add(&thread->waiting_thread_node,
 				 &proc->waiting_threads);
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+		fbg_binder_wait_for_work_hook(NULL, do_proc_work, thread, proc);
+#endif
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)
+		android_vh_binder_wait_for_work_hanlder(NULL,
+			do_proc_work, thread, proc);
+#endif
 		binder_inner_proc_unlock(proc);
 		schedule();
 		binder_inner_proc_lock(proc);
@@ -4383,6 +4611,9 @@ retry:
 			wait_event_interruptible(binder_user_error_wait,
 						 binder_stop_on_user_error < 2);
 		}
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+		fbg_binder_restore_priority_hook(NULL, NULL, current);
+#endif
 		binder_restore_priority(current, proc->default_priority);
 	}
 
@@ -4611,8 +4842,13 @@ retry:
 			trd->cookie =  target_node->cookie;
 			node_prio.sched_policy = target_node->sched_policy;
 			node_prio.prio = target_node->min_priority;
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+			binder_transaction_priority(thread, current, t, node_prio,
+						    target_node->inherit_rt);
+#else
 			binder_transaction_priority(current, t, node_prio,
 						    target_node->inherit_rt);
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 			cmd = BR_TRANSACTION;
 		} else {
 			trd->target.ptr = 0;
@@ -4630,6 +4866,14 @@ retry:
 			trd->sender_pid =
 				task_tgid_nr_ns(sender,
 						task_active_pid_ns(current));
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+			if (sysctl_sched_assist_enabled) {
+				binder_set_inherit_ux(thread->task, t_from->task);
+			}
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#if defined(CONFIG_OPLUS_FEATURE_FRAME_BOOST)
+			fbg_sync_txn_recvd_hook(NULL, thread->task, t_from->task);
+#endif
 		} else {
 			trd->sender_pid = 0;
 		}
@@ -5090,6 +5334,15 @@ static int binder_ioctl_set_ctx_mgr(struct file *filp,
 	new_node->has_strong_ref = 1;
 	new_node->has_weak_ref = 1;
 	context->binder_context_mgr_node = new_node;
+#if defined(CONFIG_OPLUS_FEATURE_BINDER_STATS_ENABLE)
+	if (NULL != context->binder_context_mgr_node &&
+			NULL != context->binder_context_mgr_node->proc &&
+			NULL != context->binder_context_mgr_node->proc->tsk) {
+		snprintf(context->binder_context_mgr_node->service_name, OPLUS_MAX_SERVICE_NAME_LEN,
+			"%s", context->binder_context_mgr_node->proc->tsk->comm);
+		context->binder_context_mgr_node->service_name[OPLUS_MAX_SERVICE_NAME_LEN-1] = '\0';
+	}
+#endif
 	binder_node_unlock(new_node);
 	binder_put_node(new_node);
 out:
@@ -5572,6 +5825,9 @@ static int binder_open(struct inode *nodp, struct file *filp)
 	spin_lock_init(&proc->outer_lock);
 	get_task_struct(current->group_leader);
 	proc->tsk = current->group_leader;
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	proc->proc_type = is_binder_proc_sf(proc) ? 1 : 0;
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 	mutex_init(&proc->files_lock);
 	proc->cred = get_cred(filp->f_cred);
 	INIT_LIST_HEAD(&proc->todo);

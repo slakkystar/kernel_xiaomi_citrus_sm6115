@@ -31,6 +31,9 @@
 #include <linux/task_io_accounting.h>
 #include <linux/rseq.h>
 #include <linux/android_kabi.h>
+#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+#include <linux/sched_assist/sched_assist_status.h>
+#endif
 
 /* task_struct member predeclarations (sorted alphabetically): */
 struct audit_context;
@@ -224,6 +227,19 @@ enum fps {
 
 #endif
 
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+extern int sysctl_sched_assist_enabled;
+extern int sysctl_sched_assist_scene;
+extern int sysctl_cpu_multi_thread;
+extern int sysctl_slide_boost_enabled;
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+extern int sysctl_input_boost_enabled;
+#endif
+extern int sysctl_boost_task_threshold;
+extern int sysctl_prefer_silver;
+extern int sysctl_heavy_task_thresh;
+extern int sysctl_cpu_util_thresh;
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 /* Task command name length: */
 #define TASK_COMM_LEN			16
 
@@ -817,6 +833,19 @@ enum perf_event_task_context {
 struct wake_q_node {
 	struct wake_q_node *next;
 };
+
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)
+#define OPLUS_NR_CPUS (8)
+/* hot-thread */
+struct task_record {
+#define RECOED_WINSIZE			(1 << 8)
+#define RECOED_WINIDX_MASK		(RECOED_WINSIZE - 1)
+	u8 winidx;
+	u8 count;
+	u8 top_app_cnt;
+	u8 non_topapp_cnt;
+};
+#endif
 
 #if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
 union reclaim_limit {
@@ -1530,6 +1559,40 @@ struct task_struct {
 #endif
 #ifdef CONFIG_ANDROID_SIMPLE_LMK
 	struct task_struct		*simple_lmk_next;
+#endif
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	int ux_state;
+	atomic64_t inherit_ux;
+	struct list_head ux_entry;
+	int ux_depth;
+	u64 enqueue_time;
+	u64 inherit_ux_start;
+	u64 sum_exec_baseline;
+	u64 total_exec;
+#ifdef CONFIG_OPLUS_UX_IM_FLAG
+	int ux_im_flag;
+#endif
+
+	int ux_once;
+	u64 get_mmlock_ts;
+	int get_mmlock;
+#endif
+#ifdef CONFIG_OPLUS_FEATURE_AUDIO_OPT
+	struct task_info oplus_task_info;
+#endif
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)
+	struct task_record record[OPLUS_NR_CPUS];	/* 2*u64 */
+	u8 total_cnt;
+	u8 top_app_cnt;
+	u8 non_topapp_cnt;
+#endif
+
+#ifdef CONFIG_OPLUS_FEATURE_FRAME_BOOST
+	struct list_head fbg_list;
+	unsigned int fbg_state;
+	int fbg_depth;
+	bool fbg_running; /* task belongs to a group, and in running */
+	int preferred_cluster_id;
 #endif
 	/* task is frozen/stopped (used by the cgroup freezer) */
 	ANDROID_KABI_USE(1, unsigned frozen:1);
