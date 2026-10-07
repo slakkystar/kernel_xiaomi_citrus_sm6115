@@ -51,7 +51,16 @@ enum zram_pageflags {
 	ZRAM_UNDER_WB,	/* page is under writeback */
 	ZRAM_IDLE,	/* not accessed page since last idle marking */
 	ZRAM_DEDUPED,	/* Deduplicated with existing entry */
-
+#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
+	ZRAM_CACHED,   /* page is cached in async compress cache buffer */
+	ZRAM_CACHED_COMPRESS, /* page is under async compress */
+#endif
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	ZRAM_BATCHING_OUT,
+	ZRAM_FROM_HYBRIDSWAP,
+	ZRAM_MCGID_CLEAR,
+	ZRAM_IN_BD, /* zram stored in back device */
+#endif
 	__NR_ZRAM_PAGEFLAGS,
 };
 
@@ -70,6 +79,9 @@ struct zram_table_entry {
 	union {
 		struct zram_entry *entry;
 		unsigned long element;
+#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
+		unsigned long page;
+#endif
 	};
 	unsigned long flags;
 #ifdef CONFIG_ZRAM_MEMORY_TRACKING
@@ -144,6 +156,13 @@ struct zram {
 #endif
 #ifdef CONFIG_ZRAM_MEMORY_TRACKING
 	struct dentry *debugfs_dir;
+#endif
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	struct block_device *bdev;
+	unsigned int old_block_size;
+	unsigned long nr_pages;
+	unsigned long increase_nr_pages;
+	struct hybridswap_area *area;
 #endif
 };
 
