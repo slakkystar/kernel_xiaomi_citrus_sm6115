@@ -118,3 +118,7 @@ config PROC_CMDLINE_APPEND_ANDROID_FORCE_NORMAL_BOOT
 #ifdef OPLUS_FEATURE_CPU_JANKINFO
 source "fs/proc/sched_info/Kconfig"
 #endif /* OPLUS_FEATURE_CPU_JANKINFO */
+
+#ifdef OPLUS_FEATURE_HEALTHINFO
+source fs/proc/healthinfo/Kconfig
+#endif /* OPLUS_FEATURE_HEALTHINFO */

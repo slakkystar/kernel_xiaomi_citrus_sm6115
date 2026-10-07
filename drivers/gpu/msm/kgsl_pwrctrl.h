@@ -79,6 +79,41 @@ enum kgsl_pwrctrl_timer_type {
 
 struct platform_device;
 
+#ifdef CONFIG_OPLUS_FEATURE_MIDAS
+// KGSL_MAX_PWRLEVELS + SLUMBER
+#define MAX_GPU_PWR_STAT  KGSL_MAX_PWRLEVELS + 1
+#define PWR_STAT_SLUMBER KGSL_MAX_PWRLEVELS
+
+/**
+ * struct gpu_pwr_stats - Struct holding different gpu power info obtained from
+ * pwrscale and pwrctrl
+ * @total:         total us seconds are sampled in this power level
+ * @busy:          total busy us seconds in this power level when sampled
+ * @ram_time:      total ram read+write us seconds  in this power level when sampled
+ * @ram_wait:      total ram wait us seconds  in this power level when sampled
+ */
+struct gpu_pwr_stats {
+	u64 total;
+	u64 busy;
+	u64 ram_time;
+	u64 ram_wait;
+};
+
+/**
+ * struct gpu_info - Struct holding gpu info we want to record
+ * @gpu_pwr_stats:  gpu_pwr_stats of each power level + SLUMBER
+ * @gpu_total:      total us seconds are sampled
+ * @timestamp:      last timestamp when sampled
+ * @last_state:     last KGSL device state when sampled
+ */
+struct gpu_info {
+	struct gpu_pwr_stats gpu_pwr_stats[MAX_GPU_PWR_STAT];
+	u64 gpu_total;
+	ktime_t timestamp;
+	int last_state;
+};
+#endif
+
 struct kgsl_clk_stats {
 	unsigned int busy;
 	unsigned int total;
@@ -291,4 +326,7 @@ int kgsl_pwrctrl_set_default_gpu_pwrlevel(struct kgsl_device *device);
 void kgsl_pwrctrl_disable_unused_opp(struct kgsl_device *device,
 		struct device *dev);
 
+#ifdef CONFIG_OPLUS_FEATURE_MIDAS
+void oplus_pwrctrl_update_stats_info(struct kgsl_device *device);
+#endif
 #endif /* __KGSL_PWRCTRL_H */

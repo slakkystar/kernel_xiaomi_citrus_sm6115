@@ -34,4 +34,7 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
 proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
 proc-$(CONFIG_PRINTK)	+= kmsg.o
 proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
+#ifdef OPLUS_FEATURE_HEALTHINFO
+obj-y	+= healthinfo/
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 obj-$(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)	+= sched_info/

@@ -26,6 +26,9 @@ obj-$(CONFIG_PLAT_VERSATILE)	+= versatile/
 obj-y				+= xilinx/
 obj-$(CONFIG_ARCH_ZX)		+= zte/
 obj-y                           += oplus/
+#ifdef OPLUS_FEATURE_HEALTHINFO
+obj-y     +=  oplus/healthinfo/
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 
 #Add for NandSwap
 obj-$(CONFIG_NANDSWAP)		+= oplus/oplus_nandswap/

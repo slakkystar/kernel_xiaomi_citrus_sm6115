@@ -19,6 +19,9 @@ source "drivers/soc/versatile/Kconfig"
 source "drivers/soc/xilinx/Kconfig"
 source "drivers/soc/zte/Kconfig"
 source "drivers/soc/oplus/Kconfig"
+#ifdef OPLUS_FEATURE_HEALTHINFO
+source "drivers/soc/oplus/healthinfo/Kconfig"
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 
 #Add for NandSwap
 source "drivers/soc/oplus/oplus_nandswap/Kconfig"
