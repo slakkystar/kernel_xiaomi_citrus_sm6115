@@ -1,0 +1,3 @@
+#ifdef OPLUS_FEATURE_LOWMEM_DBG
+source "drivers/soc/oplus/lowmem_dbg/Kconfig"
+#endif /* OPLUS_FEATURE_LOWMEM_DBG */

@@ -114,3 +114,11 @@ config PROC_CMDLINE_APPEND_ANDROID_FORCE_NORMAL_BOOT
 
 	  This is a workaround, and it's generally required for Android P
 	  launched A/B devices to migrate to Android Q style System-as-root.
+
+#ifdef OPLUS_FEATURE_HEALTHINFO
+source "fs/proc/healthinfo/Kconfig"
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
+
+#ifdef OPLUS_FEATURE_TASK_CPUSTATS
+source "fs/proc/task_cpustats/Kconfig"
+#endif /* OPLUS_FEATURE_TASK_CPUSTATS */

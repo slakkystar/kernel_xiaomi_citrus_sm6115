@@ -21,6 +21,7 @@
 #include <linux/pkeys.h>
 #include <linux/mm_inline.h>
 #include <linux/ctype.h>
+#include <linux/sched/signal.h>
 #if defined(CONFIG_KSU_SUSFS_SUS_KSTAT) || defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
 #include <linux/susfs_def.h>
 #endif // #if defined(CONFIG_KSU_SUSFS_SUS_KSTAT) || defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
@@ -896,6 +897,24 @@ static int show_smap(struct seq_file *m, void *v)
 
 	smap_gather_stats(vma, &mss);
 
+	#ifdef OPLUS_FEATURE_PERFORMANCE
+	if (strcmp(current->comm, "android.bg") == 0) {
+		if ((unsigned long)(mss.pss >> (10 + PSS_SHIFT)) > 0) {
+			SEQ_PUT_DEC(" kB\nPss:            ", mss.pss >> PSS_SHIFT);
+		}
+		if ((mss.private_clean >> 10) > 0) {
+			SEQ_PUT_DEC(" kB\nPrivate_Clean:  ", mss.private_clean);
+		}
+		if ((mss.private_dirty >> 10) > 0) {
+			SEQ_PUT_DEC(" kB\nPrivate_Dirty:  ", mss.private_dirty);
+		}
+
+		seq_puts(m, " kB\n");
+		m_cache_vma(m, vma);
+		return 0;
+	}
+	#endif /*OPLUS_FEATURE_PERFORMANCE*/
+	
 	show_map_vma(m, vma);
 	if (vma_get_anon_name(vma)) {
 		seq_puts(m, "Name:           ");
@@ -1792,7 +1811,11 @@ int reclaim_address_space(struct address_space *mapping,
 		}
 	}
 	rcu_read_unlock();
+#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
+	reclaimed = reclaim_pages_from_list(&page_list, NULL, NULL);
+#else
 	reclaimed = reclaim_pages_from_list(&page_list, NULL);
+#endif
 	rp->nr_reclaimed += reclaimed;
 
 	if (rp->nr_scanned >= rp->nr_to_reclaim)
@@ -1855,7 +1878,12 @@ cont:
 			break;
 	}
 	pte_unmap_unlock(pte - 1, ptl);
+#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
+	reclaimed = reclaim_pages_from_list(&page_list, vma, NULL);
+#else
 	reclaimed = reclaim_pages_from_list(&page_list, vma);
+#endif
+
 	rp->nr_reclaimed += reclaimed;
 	rp->nr_to_reclaim -= reclaimed;
 	if (rp->nr_to_reclaim < 0)
@@ -2038,6 +2066,10 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			if (ret)
 				break;
 			vma = vma->vm_next;
+
+			if (unlikely(signal_pending(current) &&
+				sigismember(&current->pending.signal, SIGUSR2)))
+				break;
 		}
 	} else {
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
@@ -2054,6 +2086,10 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			ret = walk_page_range(vma->vm_start, vma->vm_end,
 				&reclaim_walk);
 			if (ret)
+				break;
+
+			if (unlikely(signal_pending(current) &&
+				sigismember(&current->pending.signal, SIGUSR2)))
 				break;
 		}
 	}

@@ -2501,6 +2501,10 @@ void task_dirty_inc(struct task_struct *tsk);
 
 /* readahead.c */
 #define VM_READAHEAD_PAGES	(SZ_128K / PAGE_SIZE)
+#ifdef OPLUS_FEATURE_PERFORMANCE
+/* adaptation: Oplus VM_MAX_READAHEAD (kbytes) is RAM-size dependent; used for bdi->ra_pages */
+#define VM_MAX_READAHEAD	(totalram_pages > 0x100000 ? 512 : 128)	/* kbytes */
+#endif
 
 int force_page_cache_readahead(struct address_space *mapping, struct file *filp,
 			pgoff_t offset, unsigned long nr_to_read);
@@ -2965,6 +2969,12 @@ struct reclaim_param {
 	int nr_to_reclaim;
 	/* pages reclaimed */
 	int nr_reclaimed;
+#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
+	/* flag that relcaim inactive pages only */
+	bool inactive_lru;
+	/* the target reclaimed process */
+	struct task_struct *reclaimed_task;
+#endif
 };
 extern struct reclaim_param reclaim_task_anon(struct task_struct *task,
 		int nr_to_reclaim);
@@ -2978,5 +2988,8 @@ extern int reclaim_pte_range(pmd_t *pmd, unsigned long addr,
 				unsigned long end, struct mm_walk *walk);
 #endif
 
+#ifdef CONFIG_OPLUS_UXMEM_OPT
+extern bool is_critical_zeroslowpath_task(struct task_struct *tsk);
+#endif
 #endif /* __KERNEL__ */
 #endif /* _LINUX_MM_H */

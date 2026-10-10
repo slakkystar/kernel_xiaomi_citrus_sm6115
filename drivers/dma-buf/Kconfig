@@ -76,4 +76,11 @@ menuconfig DMABUF_SYSFS_STATS
 
 source "drivers/dma-buf/heaps/Kconfig"
 
+config DMABUF_PROC_INTERFACE
+	bool "create proc interface for getting dmabuf meminfo"
+	default n
+	depends on PROC_FS
+	help
+	  Create proc interface for getting ion meminfo
+
 endmenu

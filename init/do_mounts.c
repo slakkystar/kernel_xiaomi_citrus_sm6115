@@ -185,6 +185,7 @@ static int match_dev_by_label(struct device *dev, const void *data)
 
 	return 0;
 }
+
 #endif
 
 /*
@@ -242,7 +243,7 @@ dev_t name_to_dev_t(const char *name)
 		res = dev->devt;
 		put_device(dev);
 		goto done;
-	}
+  	}
 #endif
 
 	if (strncmp(name, "/dev/", 5) != 0) {

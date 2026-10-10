@@ -109,6 +109,9 @@
 #include <linux/sockios.h>
 #include <net/busy_poll.h>
 #include <linux/errqueue.h>
+//#ifdef OPLUS_FEATURE_NWPOWER_NETCONTROLLER
+#include <net/oplus_nwpower.h>
+//#endif /* OPLUS_FEATURE_NWPOWER_NETCONTROLLER */
 
 /* proto_ops for ipv4 and ipv6 use the same {recv,send}msg function */
 #if IS_ENABLED(CONFIG_INET)
@@ -435,6 +438,13 @@ struct file *sock_alloc_file(struct socket *sock, int flags, const char *dname)
 
 	sock->file = file;
 	file->private_data = sock;
+
+	//#ifdef OPLUS_FEATURE_NWPOWER
+	if (sock->sk) {
+		sock->sk->sk_oplus_pid = current->tgid;
+	}
+	//#endif /* OPLUS_FEATURE_NWPOWER */
+
 	return file;
 }
 EXPORT_SYMBOL(sock_alloc_file);
