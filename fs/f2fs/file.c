@@ -4478,6 +4478,11 @@ static int f2fs_preallocate_blocks(struct kiocb *iocb, struct iov_iter *iter)
 	/* If it will be an out-of-place direct write, don't bother. */
 	if (dio && f2fs_lfs_mode(sbi))
 		return 0;
+#ifdef CONFIG_HYBRIDSWAP_CORE
+	/* Overwrite of already allocated blocks: nothing to preallocate. */
+	if (dio && f2fs_overwrite_io(inode, pos, count))
+		return 0;
+#endif
 	/*
 	 * Don't preallocate holes aligned to DIO_SKIP_HOLES which turns into
 	 * buffered IO, if DIO meets any holes.

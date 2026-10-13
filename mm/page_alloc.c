@@ -69,6 +69,7 @@
 #include <linux/nmi.h>
 #include <linux/khugepaged.h>
 #include <linux/psi.h>
+#include <trace/hooks/vh_vmscan.h>
 
 #include <asm/sections.h>
 #include <asm/tlbflush.h>
@@ -3352,6 +3353,8 @@ struct page *rmqueue(struct zone *preferred_zone,
 
 	__count_zid_vm_events(PGALLOC, page_zonenum(page), 1 << order);
 	zone_statistics(preferred_zone, zone);
+	trace_android_vh_rmqueue(preferred_zone, zone, order,
+			gfp_flags, alloc_flags, migratetype);
 	local_irq_restore(flags);
 
 out:
@@ -3500,7 +3503,17 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 		if (alloc_flags & ALLOC_OOM)
 			min -= min / 2;
 		else
+#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
+/*
+ * ALLOC_HIGH:ALLOC_HARDER is about 1:10, so more for ALLOC_HARDER
+ * and since 2-order might allocate from MIGRATE_HIGHATOMIC as fallback,
+ * so here should make it easier for ALLOC_HARDER.
+ * after this change, kswapd might reclaim a bit more, which is what we want.
+ */
+			min -= min / 4 + min / 8;
+#else
 			min -= min / 4;
+#endif /*OPLUS_FEATURE_ZRAM_OPT*/
 	}
 
 	/*
@@ -4596,7 +4609,12 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	 * callers that are not in atomic context.
 	 */
 	if (WARN_ON_ONCE((gfp_mask & (__GFP_ATOMIC|__GFP_DIRECT_RECLAIM)) ==
+#ifdef VENDOR_EDIT
+				(__GFP_ATOMIC|__GFP_DIRECT_RECLAIM)) &&
+                !(gfp_mask & ___GFP_HIGH_ATOMIC_ZRAM))
+#else
 				(__GFP_ATOMIC|__GFP_DIRECT_RECLAIM)))
+#endif
 		gfp_mask &= ~__GFP_ATOMIC;
 
 restart:
