@@ -22,7 +22,6 @@
 #endif
 
 static int zero;
-static int one = 1;
 static int two = 2;
 static int auto_flowlabels_min;
 static int auto_flowlabels_max = IP6_AUTO_FLOW_LABEL_MAX;
@@ -185,7 +184,7 @@ static struct ctl_table ipv6_rotable[] = {
 		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
-		.extra1		= &one
+		.extra1		= SYSCTL_ONE
 	},
 #ifdef CONFIG_NETLABEL
 	{

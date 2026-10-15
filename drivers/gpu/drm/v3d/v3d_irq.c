@@ -87,12 +87,20 @@ v3d_irq(int irq, void *arg)
 	}
 
 	if (intsts & V3D_INT_FLDONE) {
-		dma_fence_signal(v3d->bin_job->bin.done_fence);
+		struct dma_fence *fence = v3d->bin_job->bin.done_fence;
+
+		v3d->bin_job = NULL;
+		dma_fence_signal(fence);
+
 		status = IRQ_HANDLED;
 	}
 
 	if (intsts & V3D_INT_FRDONE) {
-		dma_fence_signal(v3d->render_job->render.done_fence);
+		struct dma_fence *fence = v3d->render_job->render.done_fence;
+
+		v3d->render_job = NULL;
+		dma_fence_signal(fence);
+
 		status = IRQ_HANDLED;
 	}
 
