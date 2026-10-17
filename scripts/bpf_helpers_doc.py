@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# Copyright (C) 2018 Netronome Systems, Inc.
+# Copyright (C) 2018-2019 Netronome Systems, Inc.
 
 # In case user attempts to run with Python 2.
 from __future__ import print_function
@@ -39,7 +39,7 @@ class Helper(object):
         Break down helper function protocol into smaller chunks: return type,
         name, distincts arguments.
         """
-        arg_re = re.compile('((const )?(struct )?(\w+|...))( (\**)(\w+))?$')
+        arg_re = re.compile('((\w+ )*?(\w+|...))( (\**)(\w+))?$')
         res = {}
         proto_re = re.compile('(.+) (\**)(\w+)\(((([^,]+)(, )?){1,5})\)$')
 
@@ -54,8 +54,8 @@ class Helper(object):
             capture = arg_re.match(a)
             res['args'].append({
                 'type' : capture.group(1),
-                'star' : capture.group(6),
-                'name' : capture.group(7)
+                'star' : capture.group(5),
+                'name' : capture.group(6)
             })
 
         return res
@@ -158,8 +158,6 @@ class HeaderParser(object):
                 break
 
         self.reader.close()
-        print('Parsed description of %d helper function(s)' % len(self.helpers),
-              file=sys.stderr)
 
 ###############################################################################
 
@@ -409,6 +407,8 @@ class PrinterHelpers(Printer):
             'struct bpf_sk_lookup',
             'struct bpf_perf_event_data',
             'struct bpf_perf_event_value',
+            'struct bpf_pidns_info',
+            'struct bpf_redir_neigh',
             'struct bpf_sock',
             'struct bpf_sock_addr',
             'struct bpf_sock_ops',
@@ -418,7 +418,6 @@ class PrinterHelpers(Printer):
             'struct bpf_tcp_sock',
             'struct bpf_tunnel_key',
             'struct bpf_xfrm_state',
-            'struct linux_binprm',
             'struct pt_regs',
             'struct sk_reuseport_md',
             'struct sockaddr',
@@ -436,9 +435,6 @@ class PrinterHelpers(Printer):
             'struct xdp_md',
             'struct path',
             'struct btf_ptr',
-            'struct inode',
-            'struct socket',
-            'struct file',
     ]
     known_types = {
             '...',
@@ -469,7 +465,6 @@ class PrinterHelpers(Printer):
             'struct bpf_tcp_sock',
             'struct bpf_tunnel_key',
             'struct bpf_xfrm_state',
-            'struct linux_binprm',
             'struct pt_regs',
             'struct sk_reuseport_md',
             'struct sockaddr',
@@ -483,9 +478,6 @@ class PrinterHelpers(Printer):
             'struct task_struct',
             'struct path',
             'struct btf_ptr',
-            'struct inode',
-            'struct socket',
-            'struct file',
     }
     mapped_types = {
             'u8': '__u8',
@@ -529,8 +521,8 @@ class PrinterHelpers(Printer):
             return t
         if t in self.mapped_types:
             return self.mapped_types[t]
-        print("")
-        print("Unrecognized type '%s', please add it to known types!" % t)
+        print("Unrecognized type '%s', please add it to known types!" % t,
+              file=sys.stderr)
         sys.exit(1)
 
     seen_helpers = set()

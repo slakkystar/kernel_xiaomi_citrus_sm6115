@@ -116,6 +116,7 @@ static int get_value(struct parse_opt_ctx_t *p,
 		case OPTION_INTEGER:
 		case OPTION_UINTEGER:
 		case OPTION_LONG:
+		case OPTION_ULONG:
 		case OPTION_U64:
 		default:
 			break;
@@ -166,6 +167,7 @@ static int get_value(struct parse_opt_ctx_t *p,
 		case OPTION_INTEGER:
 		case OPTION_UINTEGER:
 		case OPTION_LONG:
+		case OPTION_ULONG:
 		case OPTION_U64:
 		default:
 			break;
@@ -235,6 +237,9 @@ static int get_value(struct parse_opt_ctx_t *p,
 		return err;
 
 	case OPTION_CALLBACK:
+		if (opt->set)
+			*(bool *)opt->set = true;
+
 		if (unset)
 			return (*opt->callback)(opt, NULL, 1) ? (-1) : 0;
 		if (opt->flags & PARSE_OPT_NOARG)
@@ -291,6 +296,22 @@ static int get_value(struct parse_opt_ctx_t *p,
 		if (get_arg(p, opt, flags, &arg))
 			return -1;
 		*(long *)opt->value = strtol(arg, (char **)&s, 10);
+		if (*s)
+			return opterror(opt, "expects a numerical value", flags);
+		return 0;
+
+	case OPTION_ULONG:
+		if (unset) {
+			*(unsigned long *)opt->value = 0;
+			return 0;
+		}
+		if (opt->flags & PARSE_OPT_OPTARG && !p->opt) {
+			*(unsigned long *)opt->value = opt->defval;
+			return 0;
+		}
+		if (get_arg(p, opt, flags, &arg))
+			return -1;
+		*(unsigned long *)opt->value = strtoul(arg, (char **)&s, 10);
 		if (*s)
 			return opterror(opt, "expects a numerical value", flags);
 		return 0;
@@ -616,9 +637,11 @@ int parse_options_subcommand(int argc, const char **argv, const struct option *o
 
 	/* build usage string if it's not provided */
 	if (subcommands && !usagestr[0]) {
+		int i;
+
 		astrcatf(&buf, "%s %s [<options>] {", subcmd_config.exec_name, argv[0]);
 
-		for (int i = 0; subcommands[i]; i++) {
+		for (i = 0; subcommands[i]; i++) {
 			if (i)
 				astrcat(&buf, "|");
 			astrcat(&buf, subcommands[i]);
@@ -644,7 +667,9 @@ int parse_options_subcommand(int argc, const char **argv, const struct option *o
 		exit(130);
 	case PARSE_OPT_LIST_SUBCMDS:
 		if (subcommands) {
-			for (int i = 0; subcommands[i]; i++)
+			int i;
+
+			for (i = 0; subcommands[i]; i++)
 				printf("%s ", subcommands[i]);
 		}
 		putchar('\n');
@@ -705,6 +730,7 @@ static void print_option_help(const struct option *opts, int full)
 	case OPTION_ARGUMENT:
 		break;
 	case OPTION_LONG:
+	case OPTION_ULONG:
 	case OPTION_U64:
 	case OPTION_INTEGER:
 	case OPTION_UINTEGER:
