@@ -193,7 +193,15 @@ gen_btf()
 
 	info "BTF" ${2}
 	vmlinux_link ${1}
-	LLVM_OBJCOPY=${OBJCOPY} ${PAHOLE} -J ${1}
+	pflags=""
+    if ${PAHOLE} --help 2>&1 | grep -q -- '--btf_features'; then
+        pflags="--btf_features=encode_force,var"
+    else
+        for f in skip_encoding_btf_enum64 skip_encoding_btf_decl_tag skip_encoding_btf_type_tag; do
+            ${PAHOLE} --help 2>&1 | grep -q -- "--$f" && pflags="$pflags --$f"
+        done
+    fi
+    LLVM_OBJCOPY=${OBJCOPY} ${PAHOLE} -J ${pflags} ${1}
 
 	# Create ${2} which contains just .BTF section but no symbols. Add
 	# SHF_ALLOC because .BTF will be part of the vmlinux image. --strip-all
