@@ -76,6 +76,10 @@
 #include <asm/div64.h>
 #include "internal.h"
 
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_MEM_MONITOR)
+#include <linux/healthinfo/memory_monitor.h>
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
+
 atomic_long_t kswapd_waiters = ATOMIC_LONG_INIT(0);
 
 /* prevent >1 _updater_ of zone percpu pageset ->high and ->batch fields */
@@ -4603,6 +4607,9 @@ __alloc_pages_slowpath(gfp_t gfp_mask, unsigned int order,
 	int reserve_flags;
 	bool woke_kswapd = false;
 	bool used_vmpressure = false;
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_MEM_MONITOR)
+	unsigned long oplus_alloc_start = jiffies;
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
 
 	/*
 	 * We also sanity check to catch abuse of atomic reserves being used by
@@ -4897,6 +4904,10 @@ got_pg:
 	if (!page)
 		warn_alloc(gfp_mask, ac->nodemask,
 				"page allocation failure: order:%u", order);
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_MEM_MONITOR)
+	memory_alloc_monitor(gfp_mask, order, jiffies_to_msecs(jiffies - oplus_alloc_start));
+	trace_android_vh_alloc_pages_slowpath(gfp_mask, order, oplus_alloc_start);
+#endif /* OPLUS_FEATURE_HEALTHINFO */
 	return page;
 }
 

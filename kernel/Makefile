@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
 #
 # Makefile for the linux kernel.
 #
@@ -45,6 +46,10 @@ CFLAGS_cfi.o = $(DISABLE_CFI_CLANG)
 CFLAGS_cfi.o = $(DISABLE_CFI_CLANG)
 
 obj-y += sched/
+
+obj-$(CONFIG_OPLUS_FEATURE_SCHED_ASSIST) += sched_assist/
+obj-y += special_opt/
+
 obj-y += locking/
 obj-y += power/
 obj-y += printk/

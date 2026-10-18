@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
 #
 # Makefile for the Linux Kernel SOC specific device drivers.
 #
@@ -25,3 +26,5 @@ obj-$(CONFIG_ARCH_U8500)	+= ux500/
 obj-$(CONFIG_PLAT_VERSATILE)	+= versatile/
 obj-y				+= xilinx/
 obj-$(CONFIG_ARCH_ZX)		+= zte/
+obj-$(CONFIG_IOMONITOR)    +=  oplus/iomonitor/
+obj-$(CONFIG_OPLUS_HEALTHINFO)  +=  oplus/healthinfo/

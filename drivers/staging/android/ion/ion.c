@@ -39,6 +39,12 @@
 #include "ion.h"
 #include "ion_secure_util.h"
 
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_HEALTHINFO) && defined (CONFIG_OPLUS_MEM_MONITOR)
+#include <linux/healthinfo/memory_monitor.h>
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_HEALTHINFO)
+#include <linux/healthinfo/ion.h>
+#endif
 static struct ion_device *internal_dev;
 static atomic_long_t total_heap_bytes;
 
@@ -170,6 +176,10 @@ static struct ion_buffer *ion_buffer_create(struct ion_heap *heap,
 	mutex_unlock(&dev->buffer_lock);
 	atomic_long_add(len, &heap->total_allocated);
 	atomic_long_add(len, &total_heap_bytes);
+#ifdef OPLUS_FEATURE_HEALTHINFO
+	if (ion_cnt_enable)
+		atomic_long_add(buffer->size, &ion_total_size);
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
 	return buffer;
 
 err1:
@@ -185,6 +195,10 @@ void ion_buffer_destroy(struct ion_buffer *buffer)
 		pr_warn_ratelimited("ION client likely missing a call to dma_buf_kunmap or dma_buf_vunmap\n");
 		buffer->heap->ops->unmap_kernel(buffer->heap, buffer);
 	}
+#ifdef OPLUS_FEATURE_HEALTHINFO
+	if (ion_cnt_enable)
+		atomic_long_sub(buffer->size, &ion_total_size);
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
 	buffer->heap->ops->free(buffer);
 	spin_lock(&buffer->heap->stat_lock);
 	buffer->heap->num_of_buffers--;
@@ -1055,6 +1069,9 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 	struct dma_buf *dmabuf;
 	char task_comm[TASK_COMM_LEN];
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_HEALTHINFO) && defined (CONFIG_OPLUS_MEM_MONITOR)
+	unsigned long oplus_ionwait_start = jiffies;
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
 
 	pr_debug("%s: len %zu heap_id_mask %u flags %x\n", __func__,
 		 len, heap_id_mask, flags);
@@ -1101,6 +1118,9 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 		kfree(exp_info.exp_name);
 	}
 
+#if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_HEALTHINFO) && defined (CONFIG_OPLUS_MEM_MONITOR)
+	ionwait_monitor(jiffies_to_msecs(jiffies - oplus_ionwait_start));
+#endif /*OPLUS_FEATURE_HEALTHINFO*/
 	return dmabuf;
 }
 

@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
+
+config OPLUS_BLK_MONITOR
+	bool "block layer monitor "
+	default n
+	help
+	 block layer monitor.

@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
 #
 # Makefile for the Linux proc filesystem routines.
 #
@@ -34,3 +35,5 @@ proc-$(CONFIG_PROC_KCORE)	+= kcore.o
 proc-$(CONFIG_PROC_VMCORE)	+= vmcore.o
 proc-$(CONFIG_PRINTK)	+= kmsg.o
 proc-$(CONFIG_PROC_PAGE_MONITOR)	+= page.o
+obj-$(CONFIG_OPLUS_CTP)	+= task_cpustats/
+obj-y	+= healthinfo/

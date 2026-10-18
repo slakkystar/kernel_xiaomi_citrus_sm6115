@@ -803,6 +803,8 @@ config UCLAMP_BUCKETS_COUNT
 
 	  If in doubt, use the default value.
 
+source "kernel/sched_assist/Kconfig"
+
 endmenu
 
 menu "FAIR Scheuler tunables"

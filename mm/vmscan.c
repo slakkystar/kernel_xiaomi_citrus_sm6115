@@ -66,10 +66,18 @@
 #include <linux/process_mm_reclaim.h>
 #endif
 
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST)
+#include <linux/sched_assist/sched_assist_common.h>
+#endif
+
 #include "internal.h"
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
+
+#if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_FG_TASK_UID)
+#include <linux/healthinfo/fg.h>
+#endif
 #include <trace/hooks/vh_vmscan.h>
 
 struct scan_control {
@@ -6004,6 +6012,11 @@ static void snapshot_refaults(struct mem_cgroup *root_memcg, pg_data_t *pgdat)
  * returns:	0, if no pages reclaimed
  * 		else, the number of pages reclaimed
  */
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+static unsigned long allocstall_ux = 0;
+module_param_named(allocstall_ux, allocstall_ux, ulong, S_IRUGO | S_IWUSR);
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+
 static unsigned long do_try_to_free_pages(struct zonelist *zonelist,
 					  struct scan_control *sc)
 {
@@ -6014,8 +6027,17 @@ static unsigned long do_try_to_free_pages(struct zonelist *zonelist,
 retry:
 	delayacct_freepages_start();
 
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST)
+	if (global_reclaim(sc)) {
+		__count_zid_vm_events(ALLOCSTALL, sc->reclaim_idx, 1);
+		if (test_task_ux(current)) {
+			allocstall_ux += 1;
+		}
+	}
+#else
 	if (global_reclaim(sc))
 		__count_zid_vm_events(ALLOCSTALL, sc->reclaim_idx, 1);
+#endif
 
 	do {
 		vmpressure_prio(sc->gfp_mask, sc->target_mem_cgroup,

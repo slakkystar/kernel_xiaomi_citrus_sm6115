@@ -75,6 +75,11 @@
 #include <linux/uaccess.h>
 #include <asm/processor.h>
 
+#ifdef OPLUS_FEATURE_TASK_CPUSTATS
+#ifdef CONFIG_OPLUS_CTP
+#include <linux/task_cpustats.h>
+#endif
+#endif /* OPLUS_FEATURE_TASK_CPUSTATS */
 #ifdef CONFIG_X86
 #include <asm/nmi.h>
 #include <asm/stacktrace.h>
@@ -142,6 +147,10 @@ extern int direct_vm_swappiness;
 static int two_hundred = 200;
 #endif /*OPLUS_FEATURE_ZRAM_OPT*/
 static int one_thousand = 1000;
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+unsigned int sysctl_uxio_io_opt = true;
+int sysctl_wbt_enable = true;
+#endif
 #ifdef CONFIG_PRINTK
 static int ten_thousand = 10000;
 #endif
@@ -369,6 +378,47 @@ static int min_sched_tunable_scaling = SCHED_TUNABLESCALING_NONE;
 static int max_sched_tunable_scaling = SCHED_TUNABLESCALING_END-1;
 #endif /* CONFIG_SMP */
 
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+int sysctl_sched_assist_enabled = 1;
+int sysctl_sched_assist_scene = 0;
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+int sysctl_cpu_multi_thread = 0;
+#endif
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+#include <linux/sched_assist/sched_assist_common.h>
+#define DEFAULT_INPUT_BOOST_DURATION 1000
+int sysctl_slide_boost_enabled = 0;
+int sysctl_boost_task_threshold = 51;
+int sysctl_frame_rate = 60;
+extern int sysctl_input_boost_enabled;
+extern int sched_assist_ib_duration_coedecay;
+int sched_frame_rate_handler(struct ctl_table *table, int write, void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret;
+
+	if (write && *ppos)
+		*ppos = 0;
+
+	ret = proc_dointvec(table, write, buffer, lenp, ppos);
+
+	return ret;
+}
+int sysctl_sched_assist_input_boost_ctrl_handler(struct ctl_table * table, int write,
+	void __user * buffer, size_t * lenp, loff_t * ppos)
+{
+	int result;
+	static DEFINE_MUTEX(sa_boost_mutex);
+	mutex_lock(&sa_boost_mutex);
+	result = proc_dointvec(table, write, buffer, lenp, ppos);
+	if (!write)
+		goto out;
+	sched_assist_input_boost_duration  = jiffies_to_msecs(jiffies) + DEFAULT_INPUT_BOOST_DURATION / sched_assist_ib_duration_coedecay;
+out:
+	mutex_unlock(&sa_boost_mutex);
+	return result;
+}
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 #ifdef CONFIG_COMPACTION
 static int min_extfrag_threshold;
 static int max_extfrag_threshold = 1000;
@@ -540,6 +590,22 @@ static struct ctl_table kern_table[] = {
 		.extra1         = &one,
 		.extra2         = &one_hundred,
 	},
+#if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
+{
+		.procname	= "uxio_first_opt",
+		.data		= &sysctl_uxio_io_opt,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+},
+{
+		.procname	= "wbt_enable",
+		.data		= &sysctl_wbt_enable,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec,
+},
+#endif
 	{
 		.procname	= "sched_coloc_downmigrate_ns",
 		.data		= &sysctl_sched_coloc_downmigrate_ns,
@@ -1678,6 +1744,69 @@ static struct ctl_table kern_table[] = {
 		.proc_handler	= proc_dointvec,
 	},
 #endif
+#ifdef OPLUS_FEATURE_TASK_CPUSTATS
+#ifdef CONFIG_OPLUS_CTP
+	{
+		.procname	= "task_cpustats_enable",
+		.data		= &sysctl_task_cpustats_enable,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0666,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1         = &zero,
+		.extra2		= &one,
+	},
+#endif
+#endif /* OPLUS_FEATURE_TASK_CPUSTATS */
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	{
+		.procname	= "sched_assist_enabled",
+		.data		= &sysctl_sched_assist_enabled,
+		.maxlen		= sizeof(int),
+		.mode		= 0666,
+		.proc_handler	= proc_dointvec,
+	},
+	{
+		.procname	= "sched_assist_scene",
+		.data		= &sysctl_sched_assist_scene,
+		.maxlen		= sizeof(int),
+		.mode		= 0666,
+		.proc_handler = sysctl_sched_assist_scene_handler,
+	},
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	{
+		.procname	= "cpu_multi_thread",
+		.data		= &sysctl_cpu_multi_thread,
+		.maxlen 	= sizeof(int),
+		.mode		= 0666,
+		.proc_handler = proc_dointvec,
+	},
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	{
+		.procname	= "frame_rate",
+		.data		= &sysctl_frame_rate,
+		.maxlen 	= sizeof(int),
+		.mode		= 0666,
+		.proc_handler = sched_frame_rate_handler,
+	},
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef OPLUS_FEATURE_SCHED_ASSIST
+	{
+		.procname	= "slide_boost_enabled",
+		.data		= &sysctl_slide_boost_enabled,
+		.maxlen 	= sizeof(int),
+		.mode		= 0666,
+		.proc_handler = proc_dointvec,
+	},
+	{
+		.procname	= "input_boost_enabled",
+		.data		= &sysctl_input_boost_enabled,
+		.maxlen 	= sizeof(int),
+		.mode		= 0666,
+		.proc_handler = sysctl_sched_assist_input_boost_ctrl_handler,
+	},
+#endif /* OPLUS_FEATURE_SCHED_ASSIST */
 	{ }
 };
 
