@@ -924,13 +924,7 @@ config MEMFD_ASHMEM_SHIM
 	  Unless you are running Android, say N.
 
 source "mm/healthinfo/Kconfig"
-
-config OPLUS_DYNAMIC_READAHEAD
-	bool "dynamic page fault read-ahead size"
-	depends on OPLUS_FEATURE_SCHED_ASSIST && FG_TASK_UID
-	default n
-	help
-	  This feature dynamically set read-ahead size for performance.
+source "mm/dynamic_readhead/Kconfig"
 
 config OPLUS_UXMEM_OPT
         bool "enable uxmem_opt"

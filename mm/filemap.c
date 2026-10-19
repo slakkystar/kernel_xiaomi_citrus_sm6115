@@ -50,7 +50,7 @@
 
 #include <asm/mman.h>
 #ifdef CONFIG_OPLUS_DYNAMIC_READAHEAD
-#include "dynamic_readhead.h"
+#include "dynamic_readhead/dynamic_readhead.h"
 #endif /* CONFIG_OPLUS_DYNAMIC_READAHEAD */
 int want_old_faultaround_pte = 1;
 

@@ -115,4 +115,4 @@ obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
 obj-$(CONFIG_PROCESS_RECLAIM_ENHANCE) += process_mm_reclaim.o
 obj-$(CONFIG_OPLUS_MEM_MONITOR) += healthinfo/
 obj-$(CONFIG_OPLUS_UXMEM_OPT) += ux_page_pool.o
-obj-$(CONFIG_OPLUS_DYNAMIC_READAHEAD) += dynamic_readhead.o
+obj-$(CONFIG_OPLUS_DYNAMIC_READAHEAD) += dynamic_readhead/

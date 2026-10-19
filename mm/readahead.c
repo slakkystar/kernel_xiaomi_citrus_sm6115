@@ -24,7 +24,7 @@
 
 #include "internal.h"
 #ifdef CONFIG_OPLUS_DYNAMIC_READAHEAD
-#include "dynamic_readhead.h"
+#include "dynamic_readhead/dynamic_readhead.h"
 #endif /* CONFIG_OPLUS_DYNAMIC_READAHEAD */
 /*
  * Initialise a struct file's readahead state.  Assumes that the caller has
