@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
+
+config OPLUS_UXMEM_OPT
+        bool "enable uxmem_opt"
+        depends on OPLUS_FEATURE_SCHED_ASSIST && FG_TASK_UID
+        default n
+        help
+          enable uxmem_opt

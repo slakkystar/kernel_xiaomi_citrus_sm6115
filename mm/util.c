@@ -33,7 +33,7 @@ static inline int is_kernel_rodata(unsigned long addr)
 #if defined(CONFIG_OPLUS_UXMEM_OPT) && defined(OPLUS_FEATURE_SCHED_ASSIST) \
 		&& defined(CONFIG_OPLUS_FEATURE_SCHED_ASSIST)
 #include <linux/sched_assist/sched_assist_common.h>
-#include "ux_page_pool.h"
+#include "uxmem_opt/ux_page_pool.h"
 #endif /* OPLUS_UXMEM_OPT */
 
 /**
