@@ -146,6 +146,15 @@ static int one_hundred = 100;
 extern int direct_vm_swappiness;
 static int two_hundred = 200;
 #endif /*OPLUS_FEATURE_ZRAM_OPT*/
+#if defined(CONFIG_OPLUS_UXMEM_OPT)
+extern int ux_page_pool_enable;
+extern int ux_page_pool_enable_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *length, loff_t *ppos);
+#endif
+
+#if defined(CONFIG_OPLUS_DYNAMIC_READAHEAD)
+extern int dynamic_readahead_enable;
+#endif
 static int one_thousand = 1000;
 #if defined(OPLUS_FEATURE_SCHED_ASSIST) && defined(CONFIG_OPLUS_FEATURE_UXIO_FIRST)
 unsigned int sysctl_uxio_io_opt = true;
@@ -2051,6 +2060,28 @@ static struct ctl_table vm_table[] = {
 		.extra1		= &one,
 		.extra2		= &four,
 	},
+#if defined(CONFIG_OPLUS_UXMEM_OPT)
+	{
+		.procname	= "ux_page_pool_enable",
+		.data		= &ux_page_pool_enable,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= ux_page_pool_enable_handler,
+		.extra1		= &zero,
+		.extra2		= &one,
+	},
+#endif /* OPLUS_UXMEM_OPT */
+#if defined(CONFIG_OPLUS_DYNAMIC_READAHEAD)
+	{
+		.procname       = "dynamic_readahead_enable",
+		.data           = &dynamic_readahead_enable,
+		.maxlen         = sizeof(dynamic_readahead_enable),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1         = &zero,
+		.extra2         = &one,
+	},
+#endif
 #ifdef CONFIG_COMPACTION
 	{
 		.procname	= "compact_memory",
