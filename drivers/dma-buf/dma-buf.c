@@ -44,6 +44,9 @@
 
 #include <uapi/linux/dma-buf.h>
 #include <uapi/linux/magic.h>
+#if defined(OPLUS_FEATURE_PERFORMANCE) && defined(CONFIG_DMABUF_PROC_INTERFACE)
+#include <linux/proc_fs.h>
+#endif
 
 #include "dma-buf-sysfs-stats.h"
 
@@ -635,9 +638,7 @@ struct dma_buf *dma_buf_export(const struct dma_buf_export_info *exp_info)
 	init_waitqueue_head(&dmabuf->poll);
 	dmabuf->cb_excl.poll = dmabuf->cb_shared.poll = &dmabuf->poll;
 	dmabuf->cb_excl.active = dmabuf->cb_shared.active = 0;
-#if defined(CONFIG_DEBUG_FS)
 	dmabuf->ktime = ktime_get();
-#endif
 	atomic_set(&dmabuf->dent_count, 1);
 
 	if (!resv) {
@@ -1367,7 +1368,7 @@ int dma_buf_get_uuid(struct dma_buf *dmabuf, uuid_t *uuid)
 }
 EXPORT_SYMBOL_GPL(dma_buf_get_uuid);
 
-#ifdef CONFIG_DEBUG_FS
+#if defined(CONFIG_DEBUG_FS) || (defined(OPLUS_FEATURE_PERFORMANCE) && defined(CONFIG_DMABUF_PROC_INTERFACE))
 static int dma_buf_debug_show(struct seq_file *s, void *unused)
 {
 	int ret;
@@ -1597,6 +1598,55 @@ static const struct file_operations dma_procs_debug_fops = {
 	.release        = single_release
 };
 
+#if defined(OPLUS_FEATURE_PERFORMANCE) && defined(CONFIG_DMABUF_PROC_INTERFACE)
+static struct proc_dir_entry *dma_buf_procfs_root;
+int dma_buf_init_procfs(void)
+{
+	struct proc_dir_entry *p;
+	int err = 0;
+
+	p = proc_mkdir("dma_buf", NULL);
+	if (IS_ERR(p))
+		return PTR_ERR(p);
+
+	dma_buf_procfs_root = p;
+
+	p = proc_create_data("bufinfo",
+			     S_IFREG | 0664,
+			     dma_buf_procfs_root,
+			     &dma_buf_debug_fops,
+			     NULL);
+	if (IS_ERR(p)) {
+		pr_debug("dma_buf: procfs: failed to create node bufinfo\n");
+		proc_remove(dma_buf_procfs_root);
+		dma_buf_procfs_root = NULL;
+		err = PTR_ERR(dma_buf_procfs_root);
+		return err;
+	}
+
+	p = proc_create_data("dmaprocs",
+			     S_IFREG | 0664,
+			     dma_buf_procfs_root,
+			     &dma_procs_debug_fops,
+			     NULL);
+	if (IS_ERR(p)) {
+		pr_debug("dma_buf: procfs: failed to create node dmaprocs\n");
+		proc_remove(dma_buf_procfs_root);
+		dma_buf_procfs_root = NULL;
+		err = PTR_ERR(dma_buf_procfs_root);
+	}
+
+	return err;
+}
+
+void dma_buf_uninit_procfs(void)
+{
+	proc_remove(dma_buf_procfs_root);
+}
+#endif /* defined(OPLUS_FEATURE_PERFORMANCE) && defined(CONFIG_DMABUF_PROC_INTERFACE) */
+
+#ifdef CONFIG_DEBUG_FS
+
 static struct dentry *dma_buf_debugfs_dir;
 
 static int dma_buf_init_debugfs(void)
@@ -1645,7 +1695,16 @@ static inline int dma_buf_init_debugfs(void)
 static inline void dma_buf_uninit_debugfs(void)
 {
 }
-#endif
+#endif /* CONFIG_DEBUG_FS */
+#else
+static inline int dma_buf_init_debugfs(void)
+{
+	return 0;
+}
+static inline void dma_buf_uninit_debugfs(void)
+{
+}
+#endif /* CONFIG_DEBUG_FS || (OPLUS_FEATURE_PERFORMANCE && CONFIG_DMABUF_PROC_INTERFACE) */
 
 static int __init dma_buf_init(void)
 {
@@ -1662,6 +1721,9 @@ static int __init dma_buf_init(void)
 	mutex_init(&db_list.lock);
 	INIT_LIST_HEAD(&db_list.head);
 	dma_buf_init_debugfs();
+#if defined(OPLUS_FEATURE_PERFORMANCE) && defined(CONFIG_DMABUF_PROC_INTERFACE)
+	dma_buf_init_procfs();
+#endif
 	return 0;
 }
 subsys_initcall(dma_buf_init);
@@ -1671,5 +1733,8 @@ static void __exit dma_buf_deinit(void)
 	dma_buf_uninit_debugfs();
 	kern_unmount(dma_buf_mnt);
 	dma_buf_uninit_sysfs_statistics();
+#if defined(OPLUS_FEATURE_PERFORMANCE) && defined(CONFIG_DMABUF_PROC_INTERFACE)
+	dma_buf_uninit_procfs();
+#endif
 }
 __exitcall(dma_buf_deinit);

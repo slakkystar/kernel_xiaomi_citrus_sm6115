@@ -3108,6 +3108,13 @@ static bool free_unref_page_prepare(struct page *page, unsigned long pfn)
 	return true;
 }
 
+bool free_unref_page_prepare2(struct page *page, unsigned int order, unsigned long pfn)
+{
+	int ret;
+	ret = free_pages_prepare(page, order, true);
+	return ret;
+}
+
 static void free_unref_page_commit(struct page *page, unsigned long pfn)
 {
 	struct zone *zone = page_zone(page);

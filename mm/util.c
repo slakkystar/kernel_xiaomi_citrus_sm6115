@@ -420,6 +420,9 @@ unsigned long vm_mmap(struct file *file, unsigned long addr,
 }
 EXPORT_SYMBOL(vm_mmap);
 
+#ifdef OPLUS_FEATURE_PERFORMANCE
+#define KMALLOC_MAX_PAGES 8
+#endif
 /**
  * kvmalloc_node - attempt to allocate physically contiguous memory, but upon
  * failure, fall back to non-contiguous (vmalloc) allocation.
@@ -496,7 +499,9 @@ void *kvmalloc_node(size_t size, gfp_t flags, int node)
 	 */
 	if (ret || size <= PAGE_SIZE)
 		return ret;
-
+#ifdef OPLUS_FEATURE_PERFORMANCE
+use_vmalloc:
+#endif
 	return __vmalloc_node(size, 1, flags, node,
 			__builtin_return_address(0));
 }
