@@ -31,6 +31,9 @@
 #define NETLINK_SMC		22	/* SMC monitoring */
 #define NETLINK_SOCKEV		23	/* Socket Administrative Events */
 #define NETLINK_INET_DIAG	NETLINK_SOCK_DIAG
+#if defined(OPLUS_FEATURE_HANS_FREEZE) && defined(CONFIG_OPLUS_FEATURE_HANS)
+#define NETLINK_OPLUS_HANS       29      /* Socket for freezing solution */
+#endif /* OPLUS_FEATURE_HANS_FREEZE */
 
 #define MAX_LINKS 32		
 
