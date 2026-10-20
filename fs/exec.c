@@ -1739,6 +1739,11 @@ static int exec_binprm(struct linux_binprm *bprm)
 		proc_exec_connector(current);
 	}
 
+#ifdef CONFIG_OPLUS_SF_BOOST
+	if (strcmp(current->comm, "surfaceflinger") == 0)
+		current->compensate_need = 2;
+#endif
+
 	return ret;
 }
 

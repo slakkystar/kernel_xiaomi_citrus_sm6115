@@ -3248,6 +3248,10 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 	 */
 	p->prio = current->normal_prio;
 
+#ifdef CONFIG_OPLUS_SF_BOOST
+  	p->compensate_need = 0;
+#endif
+
 	uclamp_fork(p);
 
 	/*

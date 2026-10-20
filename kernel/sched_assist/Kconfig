@@ -27,3 +27,7 @@ config OPLUS_CPU_AUDIO_PERF
 	help
 	   Choose this option to enable scheduler boost for audio task.
 
+config OPLUS_SF_BOOST
+	bool "Boost surfaceflinger RT placement to big cores"
+	depends on SMP
+	default n
