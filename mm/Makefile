@@ -116,3 +116,4 @@ obj-$(CONFIG_PROCESS_RECLAIM_ENHANCE) += process_mm_reclaim.o
 obj-$(CONFIG_OPLUS_MEM_MONITOR) += healthinfo/
 obj-$(CONFIG_OPLUS_UXMEM_OPT) += uxmem_opt/
 obj-$(CONFIG_OPLUS_DYNAMIC_READAHEAD) += dynamic_readhead/
+obj-$(CONFIG_KSHRINK_SLABD) += kshrink_slabd.o

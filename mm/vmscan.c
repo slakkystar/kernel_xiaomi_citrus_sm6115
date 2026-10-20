@@ -5671,7 +5671,9 @@ static bool shrink_node(pg_data_t *pgdat, struct scan_control *sc)
 	struct reclaim_state *reclaim_state = current->reclaim_state;
 	unsigned long nr_reclaimed, nr_scanned;
 	bool reclaimable = false;
-
+#ifdef CONFIG_KSHRINK_SLABD
+	bool shrink_slab_async_sucess = false;
+#endif
 	do {
 		struct mem_cgroup *root = sc->target_mem_cgroup;
 		struct mem_cgroup_reclaim_cookie reclaim = {
@@ -5728,9 +5730,16 @@ static bool shrink_node(pg_data_t *pgdat, struct scan_control *sc)
 			scanned = sc->nr_scanned;
 			shrink_node_memcg(pgdat, memcg, sc, &lru_pages);
 			node_lru_pages += lru_pages;
-
-			shrink_slab(sc->gfp_mask, pgdat->node_id, memcg,
-					sc->priority);
+#ifdef CONFIG_KSHRINK_SLABD
+			shrink_slab_async_sucess = wakeup_shrink_slabd(sc->gfp_mask,
+							pgdat->node_id,
+							memcg, sc->priority, reclaim_state);
+			if (unlikely(!shrink_slab_async_sucess))
+#endif
+			{
+				shrink_slab(sc->gfp_mask, pgdat->node_id,
+							memcg, sc->priority);
+			}
 
 			/* Record the group's reclaim efficiency */
 			vmpressure(sc->gfp_mask, memcg, false,
