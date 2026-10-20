@@ -28,3 +28,4 @@ obj-y				+= xilinx/
 obj-$(CONFIG_ARCH_ZX)		+= zte/
 obj-$(CONFIG_IOMONITOR)    +=  oplus/iomonitor/
 obj-$(CONFIG_OPLUS_HEALTHINFO)  +=  oplus/healthinfo/
+obj-$(CONFIG_OPLUS_FEATURE_GAME_OPT) += oplus/game_opt/

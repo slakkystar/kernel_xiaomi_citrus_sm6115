@@ -54,6 +54,10 @@ static inline bool task_fits_max(struct task_struct *p, int cpu);
 static inline unsigned long boosted_task_util(struct task_struct *task);
 #endif /* CONFIG_SMP */
 
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+#include "../../drivers/soc/oplus/game_opt/game_ctrl.h"
+#endif
+
 #ifdef CONFIG_SCHED_WALT
 static void walt_fixup_sched_stats_fair(struct rq *rq, struct task_struct *p,
 					u16 updated_demand_scaled,
@@ -946,7 +950,9 @@ static void update_curr(struct cfs_rq *cfs_rq)
 
 	if (entity_is_task(curr)) {
 		struct task_struct *curtask = task_of(curr);
-
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+		g_update_task_runtime(curtask, delta_exec);
+#endif
 		trace_sched_stat_runtime(curtask, delta_exec, curr->vruntime);
 		cgroup_account_cputime(curtask, delta_exec);
 		account_group_exec_runtime(curtask, delta_exec);
@@ -1097,6 +1103,9 @@ update_stats_enqueue_sleeper(struct cfs_rq *cfs_rq, struct sched_entity *se)
 #endif
 #endif /* OPLUS_FEATURE_HEALTHINFO */
 
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+                        g_sched_stat_blocked(tsk, delta);
+#endif
 			trace_sched_stat_blocked(tsk, delta);
 
 			/*

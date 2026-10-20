@@ -34,6 +34,11 @@
 #include <linux/sched_assist/sched_assist_common.h>
 #include <linux/sched_assist/sched_assist_slide.h>
 #endif /* OPLUS_FEATURE_SCHED_ASSIST */
+
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+#include "../../drivers/soc/oplus/game_opt/game_ctrl.h"
+#endif
+
 #ifdef CONFIG_LOCKING_PROTECT
 #include <linux/sched_assist/sched_assist_locking.h>
 #endif
@@ -2955,6 +2960,10 @@ try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags,
 			atomic_dec(&task_rq(p)->nr_iowait);
 		}
 
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+	g_rt_try_to_wake_up(p);
+#endif
+
 		wake_flags |= WF_MIGRATED;
 		psi_ttwu_dequeue(p);
 		set_task_cpu(p, cpu);
@@ -3656,6 +3665,10 @@ static struct rq *finish_task_switch(struct task_struct *prev)
 		 * task and put them back on the free list.
 		 */
 		kprobe_flush_task(prev);
+
+#ifdef CONFIG_OPLUS_FEATURE_GAME_OPT
+		g_rt_task_dead(prev);
+#endif
 
 		/* Task is done with its stack. */
 		put_task_stack(prev);
