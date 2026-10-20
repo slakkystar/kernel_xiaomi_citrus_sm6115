@@ -112,6 +112,7 @@ obj-$(CONFIG_HMM) += hmm.o
 obj-$(CONFIG_MEMFD_CREATE) += memfd.o
 obj-$(CONFIG_MEMFD_ASHMEM_SHIM) += memfd-ashmem-shim.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
+obj-$(CONFIG_DAMON) += damon/
 obj-$(CONFIG_PROCESS_RECLAIM_ENHANCE) += process_mm_reclaim.o
 obj-$(CONFIG_OPLUS_MEM_MONITOR) += healthinfo/
 obj-$(CONFIG_OPLUS_UXMEM_OPT) += uxmem_opt/

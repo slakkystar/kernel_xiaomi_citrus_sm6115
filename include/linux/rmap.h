@@ -23,6 +23,8 @@ extern unsigned long reclaim_pages_from_list(struct list_head *page_list,
 					struct vm_area_struct *vma);
 #endif
 
+extern unsigned long reclaim_pages(struct list_head *page_list);
+
 /*
  * The anon_vma heads a list of private "related" vmas, to scan if
  * an anonymous page pointing to this anon_vma needs to be unmapped:
