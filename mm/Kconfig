@@ -930,5 +930,6 @@ config KSHRINK_SLABD
 	  enable async shrink_lruvecd
 
 source "mm/healthinfo/Kconfig"
+source "mm/proactive_compact/Kconfig"
 source "mm/dynamic_readhead/Kconfig"
 source "mm/uxmem_opt/Kconfig"
