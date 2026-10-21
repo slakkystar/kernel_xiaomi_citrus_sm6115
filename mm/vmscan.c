@@ -1117,6 +1117,10 @@ static enum page_references page_check_references(struct page *page,
 		return PAGEREF_ACTIVATE;
 #endif
 
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+	setpage_reclaim_trylock(page);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
+
 	referenced_ptes = page_referenced(page, 1, sc->target_mem_cgroup,
 					  &vm_flags);
 	referenced_page = TestClearPageReferenced(page);
@@ -1125,6 +1129,14 @@ static enum page_references page_check_references(struct page *page,
 	 * Mlock lost the isolation race with us.  Let try_to_unmap()
 	 * move the page to the unevictable list.
 	 */
+
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+	/* if reclaim_trylock bit still set, trylock failed and been skipped  */
+	if (page_reclaim_trylock_fail(page)) {
+		return PAGEREF_KEEP;
+	}
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
+
 	if (vm_flags & VM_LOCKED)
 		return PAGEREF_RECLAIM;
 
@@ -1440,6 +1452,10 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 
 			if (unlikely(PageTransHuge(page)))
 				flags |= TTU_SPLIT_HUGE_PMD;
+			#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+			if (!force_reclaim)
+				setpage_reclaim_trylock(page);
+			#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 			if (!try_to_unmap(page, flags, sc->target_vma)) {
 				nr_unmap_fail++;
 				goto activate_locked;
@@ -1548,6 +1564,9 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 					 * leave it off the LRU).
 					 */
 					nr_reclaimed++;
+					#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+					clearpage_reclaim_trylock(page, true);
+					#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 					continue;
 				}
 			}
@@ -1571,6 +1590,9 @@ static unsigned long shrink_page_list(struct list_head *page_list,
 free_it:
 		nr_reclaimed++;
 
+		#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+		clearpage_reclaim_trylock(page, true);
+		#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 		/*
 		 * Is there need to periodically free_page_list? It would
 		 * appear not as the counts should be low
@@ -1656,6 +1678,34 @@ unsigned long reclaim_clean_pages_from_list(struct zone *zone,
 	return ret;
 }
 
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+int unforce_reclaim_pages_from_list(struct list_head *page_list)
+{
+	struct scan_control sc = {
+		.gfp_mask = GFP_KERNEL,
+		.priority = DEF_PRIORITY,
+		.may_writepage = 1,
+		.may_unmap = 1,
+		.may_swap = 1,
+	};
+	unsigned long nr_reclaimed;
+	struct reclaim_stat dummy_stat;
+	struct page *page;
+
+	list_for_each_entry(page, page_list, lru)
+		ClearPageActive(page);
+
+	nr_reclaimed = shrink_page_list(page_list, NULL, &sc,
+			0, &dummy_stat, false);
+
+	while (!list_empty(page_list)) {
+		page = lru_to_page(page_list);
+		list_del(&page->lru);
+		putback_lru_page(page);
+	}
+	return nr_reclaimed;
+}
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 #ifdef CONFIG_PROCESS_RECLAIM
 #if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
 /* record the scaned task */
@@ -2149,7 +2199,9 @@ shrink_inactive_list(unsigned long nr_to_scan, struct lruvec *lruvec,
 
 	nr_reclaimed = shrink_page_list(&page_list, pgdat, sc, 0,
 				&stat, false);
-
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+	wakeup_kshrink_lruvecd(&page_list);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 	spin_lock_irq(&pgdat->lru_lock);
 
 	if (current_is_kswapd()) {
@@ -2349,10 +2401,16 @@ static void shrink_active_list(unsigned long nr_to_scan,
 			 */
 			if ((vm_flags & VM_EXEC) && page_is_file_cache(page)) {
 				list_add(&page->lru, &l_active);
+				#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+				clearpage_reclaim_trylock(page, true);
+				#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 				continue;
 			}
 		}
-
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+		clearpage_reclaim_trylock(page, true);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
+skip_page_referenced:
 		ClearPageActive(page);	/* we are de-activating */
 		SetPageWorkingset(page);
 		list_add(&page->lru, &l_inactive);

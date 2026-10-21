@@ -616,4 +616,12 @@ extern struct page *alloc_new_node_page(struct page *page, unsigned long node);
 #define ClearPageLookAroundRef(page) clear_bit(PG_lookaround_ref, &(page)->flags)
 #define TestClearPageLookAroundRef(page) test_and_clear_bit(PG_lookaround_ref, &(page)->flags)
 #endif
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+extern bool wakeup_kshrink_lruvecd(struct list_head *page_list);
+extern void setpage_reclaim_trylock(struct page *page);
+extern void clearpage_reclaim_trylock(struct page *page, bool clear_skipped);
+extern bool page_reclaim_trylock_fail(struct page *page);
+extern bool reclaim_page_trylock(struct page *page, struct rw_semaphore *sem,
+				bool *got_lock);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 #endif	/* __MM_INTERNAL_H */

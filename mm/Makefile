@@ -118,5 +118,6 @@ obj-$(CONFIG_OPLUS_MEM_MONITOR) += healthinfo/
 obj-$(CONFIG_OPLUS_UXMEM_OPT) += uxmem_opt/
 obj-$(CONFIG_PROACTIVE_COMPACT) += proactive_compact/
 obj-$(CONFIG_OPLUS_DYNAMIC_READAHEAD) += dynamic_readhead/
+obj-$(CONFIG_SHRINK_LRU_TRYLOCK) += reclaim_lessdelay.o
 obj-$(CONFIG_MAPPED_PROTECT) += mapped_protect.o
 obj-$(CONFIG_KSHRINK_SLABD) += kshrink_slabd.o
