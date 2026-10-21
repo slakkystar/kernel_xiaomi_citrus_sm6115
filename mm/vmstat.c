@@ -1308,6 +1308,10 @@ const char * const vmstat_text[] = {
 	"swap_ra",
 	"swap_ra_hit",
 #endif
+#ifdef CONFIG_LOOK_AROUND
+	"skipped_rmap_by_lookaround",
+	"rmap_not_skipped_by_lookaround",
+#endif
 #endif /* CONFIG_VM_EVENT_COUNTERS */
 };
 #endif /* CONFIG_PROC_FS || CONFIG_SYSFS || CONFIG_NUMA */

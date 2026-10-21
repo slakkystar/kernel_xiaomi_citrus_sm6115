@@ -1094,6 +1094,29 @@ static enum page_references page_check_references(struct page *page,
 	int referenced_ptes, referenced_page;
 	unsigned long vm_flags;
 
+#ifdef CONFIG_LOOK_AROUND
+	/*
+	* look-around has seen the page is active so we can skip the rmap
+	* we can neither use PG_active nor invent a new PG_ flag, so we
+	* hardcode PG_lookaround_ref by __NR_PAGEFLAGS + 1
+	*/
+	if (TestClearPageLookAroundRef(page)) {
+		//__count_vm_events(SKIPPED_RMAP, hpage_nr_pages(page));
+		__count_vm_events(SKIPPED_RMAP, 1);
+		if (PageReferenced(page))
+			return PAGEREF_ACTIVATE;
+		else {
+			SetPageReferenced(page);
+			return PAGEREF_KEEP;
+		}
+	}
+	__count_vm_events(NOT_SKIPPED_RMAP, 1);
+#endif
+#ifdef CONFIG_MAPPED_PROTECT
+	if (page_should_be_protect(page))
+		return PAGEREF_ACTIVATE;
+#endif
+
 	referenced_ptes = page_referenced(page, 1, sc->target_mem_cgroup,
 					  &vm_flags);
 	referenced_page = TestClearPageReferenced(page);
@@ -1855,6 +1878,9 @@ static unsigned long isolate_lru_pages(unsigned long nr_to_scan,
 			nr_pages = hpage_nr_pages(page);
 			nr_taken += nr_pages;
 			nr_zone_taken[page_zonenum(page)] += nr_pages;
+			#ifdef CONFIG_MAPPED_PROTECT
+			dec_mapped_mul_op_lrulist(page, page_lru(page));
+			#endif
 			list_move(&page->lru, dst);
 			break;
 
@@ -2212,7 +2238,9 @@ static unsigned move_active_pages_to_lru(struct lruvec *lruvec,
 		list_del(&page->lru);
 		SetPageLRU(page);
 		add_page_to_lru_list(page, lruvec);
-
+#ifdef CONFIG_MAPPED_PROTECT
+		add_mapped_mul_op_lrulist(page, page_lru(page));
+#endif
 		if (put_page_testzero(page)) {
 			del_page_from_lru_list(page, lruvec);
 			__clear_page_lru_flags(page);
@@ -2293,6 +2321,20 @@ static void shrink_active_list(unsigned long nr_to_scan,
 			}
 		}
 
+		if (page_mapcount(page) >= 20) {
+			nr_rotated += hpage_nr_pages(page);
+			#ifdef CONFIG_MAPPED_PROTECT
+			if (page_should_be_protect(page)) {
+				list_add(&page->lru, &l_active);
+				continue;
+			}
+			#endif
+			goto skip_page_referenced;
+		}
+
+#ifdef CONFIG_SHRINK_LRU_TRYLOCK
+		setpage_reclaim_trylock(page);
+#endif /* CONFIG_SHRINK_LRU_TRYLOCK */
 		if (page_referenced(page, 0, sc->target_mem_cgroup,
 				    &vm_flags)) {
 			nr_rotated += hpage_nr_pages(page);

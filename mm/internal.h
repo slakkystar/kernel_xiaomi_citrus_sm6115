@@ -609,4 +609,11 @@ static inline bool is_migrate_highatomic_page(struct page *page)
 
 void setup_zone_pageset(struct zone *zone);
 extern struct page *alloc_new_node_page(struct page *page, unsigned long node);
+
+#ifdef CONFIG_LOOK_AROUND
+#define PG_lookaround_ref (__NR_PAGEFLAGS + 1)
+#define SetPageLookAroundRef(page) set_bit(PG_lookaround_ref, &(page)->flags)
+#define ClearPageLookAroundRef(page) clear_bit(PG_lookaround_ref, &(page)->flags)
+#define TestClearPageLookAroundRef(page) test_and_clear_bit(PG_lookaround_ref, &(page)->flags)
+#endif
 #endif	/* __MM_INTERNAL_H */

@@ -2135,6 +2135,9 @@ static void prep_new_page(struct page *page, unsigned int order, gfp_t gfp_flags
 		set_page_pfmemalloc(page);
 	else
 		clear_page_pfmemalloc(page);
+#ifdef CONFIG_LOOK_AROUND
+	ClearPageLookAroundRef(page);
+#endif
 }
 
 /*
@@ -5627,6 +5630,9 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 		" unevictable:%lu dirty:%lu writeback:%lu unstable:%lu\n"
 		" slab_reclaimable:%lu slab_unreclaimable:%lu\n"
 		" mapped:%lu shmem:%lu pagetables:%lu bounce:%lu\n"
+#ifdef CONFIG_MAPPED_PROTECT
+		" multi_mapped0:%ld multi_mapped1:%ld max0:%ld max1:%ld\n"
+#endif
 		" free:%lu free_pcp:%lu free_cma:%lu\n",
 		global_node_page_state(NR_ACTIVE_ANON),
 		global_node_page_state(NR_INACTIVE_ANON),
@@ -5644,6 +5650,10 @@ void show_free_areas(unsigned int filter, nodemask_t *nodemask)
 		global_node_page_state(NR_SHMEM),
 		global_zone_page_state(NR_PAGETABLE),
 		global_zone_page_state(NR_BOUNCE),
+#ifdef CONFIG_MAPPED_PROTECT
+		multi_mapped(0), multi_mapped(1),
+		multi_mapped_max(0), multi_mapped_max(1),
+#endif
 		global_zone_page_state(NR_FREE_PAGES),
 		free_pcp,
 		global_zone_page_state(NR_FREE_CMA_PAGES));
