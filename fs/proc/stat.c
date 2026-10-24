@@ -23,7 +23,11 @@
 
 #ifdef arch_idle_time
 
+#ifdef OPLUS_FEATURE_HEALTHINFO
+u64 get_idle_time(int cpu)
+#else
 static u64 get_idle_time(int cpu)
+#endif
 {
 	u64 idle;
 
@@ -33,7 +37,11 @@ static u64 get_idle_time(int cpu)
 	return idle;
 }
 
+#ifdef OPLUS_FEATURE_HEALTHINFO
+u64 get_iowait_time(int cpu)
+#else
 static u64 get_iowait_time(int cpu)
+#endif
 {
 	u64 iowait;
 
@@ -45,7 +53,11 @@ static u64 get_iowait_time(int cpu)
 
 #else
 
+#ifdef OPLUS_FEATURE_HEALTHINFO
+u64 get_idle_time(int cpu)
+#else
 static u64 get_idle_time(int cpu)
+#endif
 {
 	u64 idle, idle_usecs = -1ULL;
 
@@ -61,7 +73,11 @@ static u64 get_idle_time(int cpu)
 	return idle;
 }
 
+#ifdef OPLUS_FEATURE_HEALTHINFO
+u64 get_iowait_time(int cpu)
+#else
 static u64 get_iowait_time(int cpu)
+#endif
 {
 	u64 iowait, iowait_usecs = -1ULL;
 

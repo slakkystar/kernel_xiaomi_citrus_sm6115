@@ -73,6 +73,11 @@ enum ion_heap_ids {
 #define ION_FLAG_CP_CDSP		ION_BIT(29)
 #define ION_FLAG_CP_SPSS_HLOS_SHARED	ION_BIT(30)
 
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+/* boost pool flag. */
+#define ION_FLAG_CAMERA_BUFFER  ION_BIT(13)
+#endif
+
 #define ION_FLAGS_CP_MASK	0x6FFE0000
 
 /**

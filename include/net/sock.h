@@ -189,6 +189,10 @@ struct sock_common {
 	struct proto		*skc_prot;
 	possible_net_t		skc_net;
 
+#ifdef VENDOR_EDIT
+	char skc_cmdline[TASK_COMM_LEN];
+#endif /* VENDOR_EDIT */
+
 #if IS_ENABLED(CONFIG_IPV6)
 	struct in6_addr		skc_v6_daddr;
 	struct in6_addr		skc_v6_rcv_saddr;
@@ -389,6 +393,10 @@ struct sock {
 #define sk_incoming_cpu		__sk_common.skc_incoming_cpu
 #define sk_flags		__sk_common.skc_flags
 #define sk_rxhash		__sk_common.skc_rxhash
+
+#ifdef VENDOR_EDIT
+#define sk_cmdline		__sk_common.skc_cmdline
+#endif /* VENDOR_EDIT */
 
 	socket_lock_t		sk_lock;
 	atomic_t		sk_drops;

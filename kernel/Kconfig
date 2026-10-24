@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
+
+source "kernel/sigkill_diagnosis/Kconfig"
+source "kernel/sched_assist/Kconfig"
+source "kernel/tuning/Kconfig"
+source "kernel/uad/Kconfig"

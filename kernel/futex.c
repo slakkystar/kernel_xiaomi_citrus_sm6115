@@ -73,6 +73,9 @@
 
 #include "locking/rtmutex_common.h"
 
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)
+#include <linux/sched_info/osi_tasktrack.h>
+#endif
 /*
  * READ this before attempting to hack on futexes!
  *
@@ -2340,6 +2343,9 @@ static inline void __queue_me(struct futex_q *q, struct futex_hash_bucket *hb)
 {
 	int prio;
 
+#ifdef CONFIG_OPLUS_LOCKING_STRATEGY
+	bool already_on_hb = false;
+#endif
 	/*
 	 * The priority used to register this element is
 	 * - either the real thread-priority for the real-time threads
@@ -2718,8 +2724,28 @@ static void futex_wait_queue_me(struct futex_hash_bucket *hb, struct futex_q *q,
 		 * flagged for rescheduling. Only call schedule if there
 		 * is no timeout, or if it has yet to expire.
 		 */
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO) || \
+	(defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_JANK_INFO))
+		if (!timeout || timeout->task) {
+#if IS_ENABLED(CONFIG_OPLUS_FEATURE_CPU_JANKINFO)
+			android_vh_futex_sleep_start_handelr(NULL, current);
+#endif
+#ifdef OPLUS_FEATURE_HEALTHINFO
+#ifdef CONFIG_OPLUS_JANK_INFO
+			current->in_futex = 1;
+#endif
+#endif /* OPLUS_FEATURE_HEALTHINFO */
+			freezable_schedule();
+#ifdef OPLUS_FEATURE_HEALTHINFO
+#ifdef CONFIG_OPLUS_JANK_INFO
+			current->in_futex = 0;
+#endif
+#endif /* OPLUS_FEATURE_HEALTHINFO */
+		}
+#else
 		if (!timeout || timeout->task)
 			freezable_schedule();
+#endif
 	}
 	__set_current_state(TASK_RUNNING);
 }

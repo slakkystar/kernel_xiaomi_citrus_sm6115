@@ -96,6 +96,14 @@ config ANDROID_SIMPLE_LMK_TIMEOUT_MSEC
 
 endif
 
+if OPLUS_KERNEL
+config OPLUS_BINDER_STRATEGY
+	default n
+	bool "config binder control"
+	help
+	  it helps to reduce anr by restricting background app binder behavior.
+endif
+
 endif # if ANDROID
 
 endmenu

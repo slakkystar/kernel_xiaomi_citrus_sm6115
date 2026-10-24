@@ -40,3 +40,5 @@ obj-$(CONFIG_BLK_SED_OPAL)	+= sed-opal.o
 obj-$(CONFIG_BLK_INLINE_ENCRYPTION)	+= keyslot-manager.o bio-crypt-ctx.o \
 					   blk-crypto.o
 obj-$(CONFIG_BLK_INLINE_ENCRYPTION_FALLBACK)	+= blk-crypto-fallback.o
+obj-$(CONFIG_OPLUS_FEATURE_UXIO_FIRST)	+= uxio_first/
+obj-$(CONFIG_OPLUS_BLK_MONITOR) += blk/

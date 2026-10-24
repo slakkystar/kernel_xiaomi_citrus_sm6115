@@ -111,3 +111,18 @@ obj-$(CONFIG_HMM) += hmm.o
 obj-$(CONFIG_MEMFD_CREATE) += memfd.o
 obj-$(CONFIG_MEMFD_ASHMEM_SHIM) += memfd-ashmem-shim.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
+
+obj-$(CONFIG_DAMON) += damon/
+obj-$(CONFIG_OPLUS_MEM_MONITOR) += healthinfo/
+obj-$(CONFIG_OPLUS_MEMORY_ISOLATE) += memory_isolate/
+obj-$(CONFIG_OPLUS_MULTI_KSWAPD) += multi_kswapd/
+obj-$(CONFIG_PROCESS_RECLAIM_ENHANCE) += process_mm_reclaim/
+obj-$(CONFIG_VIRTUAL_RESERVE_MEMORY) += reserve_area/
+obj-$(CONFIG_PHYSICAL_ANTI_FRAGMENTATION) += multi_freearea/
+ifeq ($(OPLUS_FEATURE_MEMLEAK_DETECT), yes)
+obj-$(CONFIG_DUMP_TASKS_MEM) += task_mem/
+endif
+obj-$(CONFIG_PROACTIVE_COMPACT) += proactive_compact/
+obj-$(CONFIG_OPLUS_UXMEM_OPT) += uxmem_opt/
+obj-$(CONFIG_OPLUS_DYNAMIC_READAHEAD) += dynamic_readhead/
+obj-$(CONFIG_OPLUS_KERNEL) += oplus/

@@ -21,6 +21,12 @@ bool schedtune_prefer_high_cap(struct task_struct *tsk);
 void schedtune_enqueue_task(struct task_struct *p, int cpu);
 void schedtune_dequeue_task(struct task_struct *p, int cpu);
 
+#ifdef OPLUS_FEATURE_POWER_CPUFREQ
+unsigned int schedtune_window_policy(struct task_struct *p);
+unsigned int uclamp_discount_wait_time(struct task_struct *p);
+unsigned int uclamp_top_task_filter(struct task_struct *p);
+unsigned int uclamp_ed_task_filter(struct task_struct *p);
+#endif
 #else /* CONFIG_SCHED_TUNE */
 
 #define schedtune_cpu_boost_with(cpu, p) 0
@@ -31,5 +37,9 @@ void schedtune_dequeue_task(struct task_struct *p, int cpu);
 
 #define schedtune_enqueue_task(task, cpu) do { } while (0)
 #define schedtune_dequeue_task(task, cpu) do { } while (0)
+
+#ifdef OPLUS_FEATURE_POWER_CPUFREQ
+#define schedtune_window_policy(tsk) 0
+#endif
 
 #endif /* CONFIG_SCHED_TUNE */

@@ -84,5 +84,12 @@ ifneq ($(CONFIG_NET_L3_MASTER_DEV),)
 obj-y				+= l3mdev/
 endif
 obj-$(CONFIG_QRTR)		+= qrtr/
+ifdef CONFIG_OPLUS_KERNEL
+obj-y                   	+= oplus_ipv6/
+obj-y				+= oplus_apps_monitor/
+obj-$(CONFIG_OPLUS_FEATURE_DATA_EVAL) += oplus_score/
+obj-y				+= oplus_dhcp/
+obj-y                           += oplus_modules/
+endif
 obj-$(CONFIG_NET_NCSI)		+= ncsi/
 obj-$(CONFIG_XDP_SOCKETS)	+= xdp/

@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
+
+config OPLUS_HEALTHINFO
+    bool "config healthinfo"
+    help
+        define this config to init healthinfo.
+
+config MMAP_LOCK_OPT
+	bool "config mmap lock opt boos"
+	default n
+	help
+	  reduce sleep time in mmap lock

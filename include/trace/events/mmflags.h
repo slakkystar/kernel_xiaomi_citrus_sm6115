@@ -73,7 +73,7 @@
 #define IF_HAVE_PG_HWPOISON(flag,string)
 #endif
 
-#if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
+#if defined(CONFIG_PAGE_IDLE_FLAG) && defined(CONFIG_64BIT)
 #define IF_HAVE_PG_IDLE(flag,string) ,{1UL << flag, string}
 #else
 #define IF_HAVE_PG_IDLE(flag,string)
@@ -131,9 +131,9 @@ IF_HAVE_PG_IDLE(PG_idle,		"idle"		)
 #endif
 
 #ifdef CONFIG_HAVE_ARCH_USERFAULTFD_MINOR
-# define IF_HAVE_UFFD_MINOR(flag, name) {flag, name},
+#define IF_HAVE_UFFD_MINOR(flag, name) {flag, name},
 #else
-# define IF_HAVE_UFFD_MINOR(flag, name)
+#define IF_HAVE_UFFD_MINOR(flag, name)
 #endif
 
 #define __def_vmaflag_names						\
