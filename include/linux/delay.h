@@ -58,6 +58,16 @@ void calibrate_delay(void);
 void msleep(unsigned int msecs);
 unsigned long msleep_interruptible(unsigned int msecs);
 void usleep_range(unsigned long min, unsigned long max);
+#ifdef VENDOR_EDIT
+#include <linux/sched.h>
+void usleep_range_state(unsigned long min, unsigned long max,
+			unsigned int state);
+
+static inline void usleep_idle_range(unsigned long min, unsigned long max)
+{
+	usleep_range_state(min, max, TASK_IDLE);
+}
+#endif /* VENDOR_EDIT */
 
 static inline void ssleep(unsigned int seconds)
 {

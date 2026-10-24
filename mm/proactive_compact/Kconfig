@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
+
+config PROACTIVE_COMPACT
+	tristate "trigger memory compact based on fragmentation index"
+	default n
+	help
+	  trigger memory compact based on fragmentation index

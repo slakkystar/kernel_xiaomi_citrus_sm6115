@@ -246,3 +246,8 @@ config BLK_MQ_RDMA
 	default y
 
 source block/Kconfig.iosched
+
+if OPLUS_KERNEL
+source block/blk/Kconfig
+source block/uxio_first/Kconfig
+endif

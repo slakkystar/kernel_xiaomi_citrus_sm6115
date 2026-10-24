@@ -145,6 +145,16 @@ struct ion_buffer {
 	struct sg_table *sg_table;
 	struct list_head attachments;
 	struct list_head vmas;
+#if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_DUMP_TASKS_MEM)
+	/* ion buffer allocator */
+	struct task_struct *tsk;
+#endif
+#if defined(OPLUS_FEATURE_MEMLEAK_DETECT) && defined(CONFIG_MEMLEAK_DETECT_THREAD)
+	/* add record the buffer
+	 * create time and calc the buffer age on dump.
+	 */
+	unsigned long jiffies;
+#endif
 };
 
 void ion_buffer_destroy(struct ion_buffer *buffer);
@@ -457,6 +467,9 @@ struct ion_page_pool {
 	unsigned int order;
 	struct plist_node list;
 	struct device *dev;
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+	bool graphic_buffer_flag;
+#endif
 };
 
 struct ion_page_pool *ion_page_pool_create(gfp_t gfp_mask, unsigned int order,

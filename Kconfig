@@ -5,11 +5,28 @@
 #
 mainmenu "Linux/$(ARCH) $(KERNELVERSION) Kernel Configuration"
 
+config OPLUS_KERNEL
+	bool
+	default y if "$(IS_OPLUS)" = "true"
+	help
+	  define this config to enable oplus-specefic features on your kernel
+
+config OPLUS_SYSTEM_KERNEL_QCOM
+	bool "config oplus system feature"
+	depends on OPLUS_KERNEL
+	default y
+	help
+	  define this config to Distinguish between qcom and mtk platform
+
 source "scripts/Kconfig.include"
 
 source "init/Kconfig"
 
 source "kernel/Kconfig.freezer"
+
+if OPLUS_KERNEL
+source "kernel/Kconfig"
+endif
 
 source "fs/Kconfig.binfmt"
 

@@ -19,4 +19,15 @@ source "drivers/soc/versatile/Kconfig"
 source "drivers/soc/xilinx/Kconfig"
 source "drivers/soc/zte/Kconfig"
 
+if OPLUS_KERNEL
+source "drivers/soc/oplus/Kconfig"
+source "drivers/soc/oplus/iomonitor/Kconfig"
+source "drivers/soc/oplus/healthinfo/Kconfig"
+source "drivers/soc/oplus/tpp/Kconfig"
+source "drivers/soc/oplus/im/Kconfig"
+source "drivers/soc/oplus/tpd/Kconfig"
+source "drivers/soc/oplus/game_opt/Kconfig"
+source "drivers/soc/oplus/oplus_overload/Kconfig"
+endif
+
 endmenu

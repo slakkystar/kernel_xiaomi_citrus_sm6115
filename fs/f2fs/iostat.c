@@ -165,6 +165,12 @@ void f2fs_update_iostat(struct f2fs_sb_info *sbi,
 
 	spin_lock(&sbi->iostat_lock);
 	sbi->rw_iostat[type] += io_bytes;
+#if defined(OPLUS_FEATURE_IOMONITOR) && defined(CONFIG_IOMONITOR)
+	if (type == FS_GC_DATA_IO || type == FS_GC_NODE_IO)
+		iomonitor_update_fs_stats(FS_GC_OPT, 1);
+	else if (type == FS_DISCARD)
+		iomonitor_update_fs_stats(FS_DISCARD_OPT, 1);
+#endif /*OPLUS_FEATURE_IOMONITOR*/
 
 	if (type == APP_WRITE_IO || type == APP_DIRECT_IO)
 		sbi->rw_iostat[APP_BUFFERED_IO] =

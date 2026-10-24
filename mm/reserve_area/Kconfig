@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2018-2021 Oplus. All rights reserved.
+
+config VIRTUAL_RESERVE_MEMORY
+	bool "reserved vma for gpu emergency mmap"
+	default n
+	help
+	 support reserved vma for gpu emergency mmap.

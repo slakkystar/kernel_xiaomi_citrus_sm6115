@@ -715,6 +715,7 @@ config IDLE_PAGE_TRACKING
 	bool "Enable idle page tracking"
 	depends on SYSFS && MMU
 	select PAGE_EXTENSION if !64BIT
+	select PAGE_IDLE_FLAG if OPLUS_KERNEL
 	help
 	  This feature allows to estimate the amount of user pages that have
 	  not been touched during a given period of time. This information can
@@ -900,3 +901,45 @@ config MEMFD_ASHMEM_SHIM
 	  now memfds passed to them.
 
 	  Unless you are running Android, say N.
+
+if OPLUS_KERNEL
+config PAGE_IDLE_FLAG
+	bool "Add PG_idle and PG_young flags"
+	default y
+	help
+	  This feature adds PG_idle and PG_young flags in 'struct page'.  PTE
+	  Accessed bit writers can set the state of the bit in the flags to let
+	  other PTE Accessed bit readers don't disturbed.
+
+source "mm/damon/Kconfig"
+source "mm/healthinfo/Kconfig"
+source "mm/memory_isolate/Kconfig"
+source "mm/multi_kswapd/Kconfig"
+source "mm/process_mm_reclaim/Kconfig"
+source "mm/reserve_area/Kconfig"
+source "mm/multi_freearea/Kconfig"
+source "mm/oplus/Kconfig"
+source "mm/uxmem_opt/Kconfig"
+source "mm/proactive_compact/Kconfig"
+source "mm/dynamic_readhead/Kconfig"
+source "mm/malloc_track/Kconfig"
+source "mm/task_mem/Kconfig"
+
+config DYNAMIC_TUNNING_SWAPPINESS
+	bool "tunning swappiess depends on file_pages size"
+	default n
+	help
+	  tunning swappiess depends on file_pages size
+
+config OOM_REAPER_RECLAIM_MEMORY
+	bool "enable oom_reaper to reclaim memory"
+	default n
+	help
+	  enable oom_reaper to reclaim memory
+
+config LOOK_AROUND
+	bool "look around"
+	default n
+	help
+	  look aroud pages when rmap lru page
+endif # OPLUS_KERNEL
