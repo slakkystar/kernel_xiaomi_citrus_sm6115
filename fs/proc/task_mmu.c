@@ -21,6 +21,7 @@
 #include <linux/pkeys.h>
 #include <linux/mm_inline.h>
 #include <linux/ctype.h>
+#include <linux/sched/signal.h>
 #if defined(CONFIG_KSU_SUSFS_SUS_KSTAT) || defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
 #include <linux/susfs_def.h>
 #endif // #if defined(CONFIG_KSU_SUSFS_SUS_KSTAT) || defined(CONFIG_KSU_SUSFS_SUS_MAP) || defined(CONFIG_KSU_SUSFS_OPEN_REDIRECT)
@@ -2065,6 +2066,11 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			if (ret)
 				break;
 			vma = vma->vm_next;
+#ifdef CONFIG_PROCESS_RECLAIM_ENHANCE
+			if (unlikely(signal_pending(current) &&
+				sigismember(&current->pending.signal, SIGUSR2)))
+				break;
+#endif
 		}
 	} else {
 		for (vma = mm->mmap; vma; vma = vma->vm_next) {
@@ -2082,6 +2088,11 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 				&reclaim_walk);
 			if (ret)
 				break;
+#ifdef CONFIG_PROCESS_RECLAIM_ENHANCE
+			if (unlikely(signal_pending(current) &&
+				sigismember(&current->pending.signal, SIGUSR2)))
+				break;
+#endif
 		}
 	}
 

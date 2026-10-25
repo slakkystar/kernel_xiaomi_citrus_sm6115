@@ -1932,7 +1932,13 @@ static enum compact_result __compact_finished(struct compact_control *cc)
 		}
 	}
 
+#ifdef CONFIG_PROCESS_RECLAIM_ENHANCE
+	if (cc->contended || fatal_signal_pending(current) ||
+		(signal_pending(current) &&
+		sigismember(&current->pending.signal, SIGUSR2)))
+#else
 	if (cc->contended || fatal_signal_pending(current))
+#endif
 		ret = COMPACT_CONTENDED;
 
 	return ret;

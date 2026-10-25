@@ -3,6 +3,7 @@
 #include <linux/highmem.h>
 #include <linux/sched.h>
 #include <linux/hugetlb.h>
+#include <linux/sched/signal.h>
 
 static int walk_pte_range(pmd_t *pmd, unsigned long addr, unsigned long end,
 			  struct mm_walk *walk)
@@ -340,6 +341,12 @@ int walk_page_range(unsigned long start, unsigned long end,
 			err = __walk_page_range(start, next, walk);
 		if (err)
 			break;
+#ifdef CONFIG_PROCESS_RECLAIM_ENHANCE
+		/* OPLUS: userspace aborts a long reclaim walk with SIGUSR2 */
+		if (unlikely(signal_pending(current) &&
+			sigismember(&current->pending.signal, SIGUSR2)))
+			break;
+#endif
 	} while (start = next, start < end);
 	return err;
 }
