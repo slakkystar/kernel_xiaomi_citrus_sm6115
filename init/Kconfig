@@ -2355,3 +2355,10 @@ config ARCH_HAS_SYSCALL_WRAPPER
 	def_bool n
 
 source "init/Kconfig.gki"
+
+config BOOTLOADER_SPOOF
+	bool "Bootloader State Spoofing"
+	default n
+	help
+	  This option enables kernel-level spoofing of bootloader parameters
+	  passed via the kernel command line (cmdline).

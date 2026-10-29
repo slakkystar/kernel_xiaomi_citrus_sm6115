@@ -42,6 +42,9 @@
 #include <linux/psci.h>
 #include <linux/sched/task.h>
 #include <linux/mm.h>
+#ifdef CONFIG_BOOTLOADER_SPOOF
+#include <linux/string.h>
+#endif
 
 #include <asm/acpi.h>
 #include <asm/fixmap.h>
@@ -296,6 +299,95 @@ u64 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = INVALID_HWID };
 
 void __init __weak init_random_pool(void) { }
 
+#ifdef CONFIG_BOOTLOADER_SPOOF
+static int __init cmdline_replace_val(const char *key, const char *from,
+				      const char *to)
+{
+	const size_t klen = strlen(key);
+	const size_t tlen = strlen(to);
+	char *p = boot_command_line;	/* search cursor */
+	int found = 0;
+
+	/* Find every occurrence of "key" in the command line */
+	while ((p = strstr(p, key)) != NULL) {
+		char *v = p + klen;	/* start of the value */
+		char *end;		/* first char after the value */
+		size_t flen;		/* length of the current value */
+
+		/*
+		 * strstr() also matches in the middle of a word, e.g.
+		 * "foo.androidboot.x=". Accept only a match at the very
+		 * start of the string or right after a space.
+		 */
+		if (p != boot_command_line && p[-1] != ' ') {
+			p = v;
+			continue;
+		}
+
+		/* The value ends at the next space or at the end of string */
+		end = strchr(v, ' ');
+		if (!end)
+			end = v + strlen(v);
+		flen = end - v;
+
+		/*
+		 * If a specific "from" value was requested, skip arguments
+		 * whose current value is different (length check first, so
+		 * "false" does not match "false2").
+		 */
+		if (from && (flen != strlen(from) || strncmp(v, from, flen))) {
+			p = v;
+			continue;
+		}
+
+		found++;
+
+		/* Only modify the string if the result still fits */
+		if (strlen(boot_command_line) - flen + tlen < COMMAND_LINE_SIZE) {
+			/*
+			 * Move the tail (the space and everything after the
+			 * old value, plus the terminating '\0') so it starts
+			 * right after where the new value will end. This
+			 * grows or shrinks the string; no extra spaces are
+			 * left behind, the existing separator is preserved.
+			 */
+			memmove(v + tlen, end, strlen(end) + 1);
+			/* Write the new value into the gap */
+			memcpy(v, to, tlen);
+			/* Continue searching after the new value */
+			p = v + tlen;
+		} else {
+			/* No room: leave this argument untouched */
+			p = end;
+		}
+	}
+
+	return found;
+}
+
+static void __init cmdline_force_val(const char *key, const char *to)
+{
+	size_t klen = strlen(key);
+	size_t tlen = strlen(to);
+
+	/* Case 1: ABL passed the argument -> replace any value with "to" */
+	if (cmdline_replace_val(key, NULL, to))
+		return;
+
+	/* Case 2: ABL did not pass it -> append " key=to" */
+
+	/* Make sure there is room for ' ' + key + value + '\0' */
+	if (strlen(boot_command_line) + 1 + klen + tlen >= COMMAND_LINE_SIZE)
+		return;
+
+	/* Add a separator only if the command line is not empty */
+	if (boot_command_line[0])
+		strlcat(boot_command_line, " ", COMMAND_LINE_SIZE);
+	strlcat(boot_command_line, key, COMMAND_LINE_SIZE);
+	strlcat(boot_command_line, to, COMMAND_LINE_SIZE);
+}
+#endif
+
 void __init setup_arch(char **cmdline_p)
 {
 	init_mm.start_code = (unsigned long) _text;
@@ -309,6 +401,13 @@ void __init setup_arch(char **cmdline_p)
 	early_ioremap_init();
 
 	setup_machine_fdt(__fdt_pointer);
+
+#ifdef CONFIG_BOOTLOADER_SPOOF
+    cmdline_force_val("androidboot.verifiedbootstate=", "green");
+    cmdline_force_val("androidboot.flash.locked=", "1");
+    cmdline_force_val("androidboot.vbmeta.device_state=", "locked");
+    cmdline_force_val("androidboot.vbmeta.digest=", "6163500b93dbf1a010cd14f84ea9815d359adb671e209f233f009bcfdf3c789c");
+#endif
 
 	/*
 	 * Initialise the static keys early as they may be enabled by the
