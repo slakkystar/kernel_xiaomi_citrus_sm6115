@@ -21,5 +21,6 @@ source "drivers/soc/zte/Kconfig"
 source "drivers/soc/oplus/iomonitor/Kconfig"
 source "drivers/soc/oplus/healthinfo/Kconfig"
 source "drivers/soc/oplus/game_opt/Kconfig"
+source "drivers/soc/oplus/lowmem_dbg/Kconfig"
 
 endmenu

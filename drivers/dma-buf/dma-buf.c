@@ -48,6 +48,11 @@
 #include <linux/proc_fs.h>
 #endif
 
+#ifdef OPLUS_FEATURE_LOWMEM_DBG
+/* usage when lowmmem occurs. */
+#include <soc/oplus/lowmem_dbg.h>
+#endif /* OPLUS_FEATURE_LOWMEM_DBG */
+
 #include "dma-buf-sysfs-stats.h"
 
 struct dma_buf_list {
@@ -522,6 +527,14 @@ int is_dma_buf_file(struct file *file)
 	return file->f_op == &dma_buf_fops;
 }
 EXPORT_SYMBOL_GPL(is_dma_buf_file);
+
+#ifdef OPLUS_FEATURE_LOWMEM_DBG
+/* usage when lowmmem occurs. */
+inline int oplus_is_dma_buf_file(struct file *file)
+{
+       return is_dma_buf_file(file);
+}
+#endif /* OPLUS_FEATURE_LOWMEM_DBG */
 
 static struct file *dma_buf_getfile(struct dma_buf *dmabuf, int flags)
 {
