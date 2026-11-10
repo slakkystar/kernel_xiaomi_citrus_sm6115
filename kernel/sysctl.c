@@ -129,6 +129,10 @@ extern int sysctl_nr_trim_pages;
 static int sixty = 60;
 #endif
 
+#ifdef CONFIG_MMAP_LOCK_OPT
+int sysctl_uxchain_v2 = 0;
+#endif
+
 static int __maybe_unused neg_one = -1;
 static int __maybe_unused neg_three = -3;
 
@@ -142,9 +146,9 @@ static unsigned long zero_ul;
 static unsigned long one_ul = 1;
 static unsigned long long_max = LONG_MAX;
 static int one_hundred = 100;
+static int two_hundred = 200;
 #if defined(OPLUS_FEATURE_ZRAM_OPT) && defined(CONFIG_OPLUS_ZRAM_OPT)
 extern int direct_vm_swappiness;
-static int two_hundred = 200;
 #endif /*OPLUS_FEATURE_ZRAM_OPT*/
 #if defined(CONFIG_OPLUS_UXMEM_OPT)
 extern int ux_page_pool_enable;
@@ -1816,6 +1820,16 @@ static struct ctl_table kern_table[] = {
 		.proc_handler = sysctl_sched_assist_input_boost_ctrl_handler,
 	},
 #endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef CONFIG_MMAP_LOCK_OPT
+	{
+		.procname	= "uxchain_v2",
+		.data		= &sysctl_uxchain_v2,
+		.maxlen = sizeof(int),
+		.mode		= 0666,
+		.proc_handler = proc_dointvec,
+	},
+#endif
+
 	{ }
 };
 

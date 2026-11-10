@@ -135,6 +135,9 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
 
 	if (waiter->type == RWSEM_WAITING_FOR_WRITE) {
 		if (wake_type == RWSEM_WAKE_ANY) {
+#ifdef CONFIG_MMAP_LOCK_OPT
+			uxchain_rwsem_wake(waiter->task, sem);
+#endif
 			/*
 			 * Mark writer at the front of the queue for wakeup.
 			 * Until the task is actually later awoken later by
@@ -227,6 +230,9 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
 		 * to the task to wakeup.
 		 */
 		smp_store_release(&waiter->task, NULL);
+#ifdef CONFIG_MMAP_LOCK_OPT
+		uxchain_rwsem_wake(tsk, sem);
+#endif
 		/*
 		 * Ensure issuing the wakeup (either by us or someone else)
 		 * after setting the reader waiter to nil.

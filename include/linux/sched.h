@@ -1572,6 +1572,11 @@ struct task_struct {
 	struct list_head locking_entry;
 #endif
 #endif /* OPLUS_FEATURE_SCHED_ASSIST */
+#ifdef CONFIG_MMAP_LOCK_OPT
+	int ux_once;
+	u64 get_mmlock_ts;
+	int get_mmlock;
+#endif
 #ifdef OPLUS_FEATURE_HEALTHINFO
 #ifdef CONFIG_OPLUS_JANK_INFO
 	int jank_trace;
@@ -2032,6 +2037,10 @@ extern int wake_up_state(struct task_struct *tsk, unsigned int state);
 extern int wake_up_process(struct task_struct *tsk);
 extern void wake_up_new_task(struct task_struct *tsk);
 
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+extern pid_t alloc_svc_tgid;
+#endif
+
 #ifdef CONFIG_SMP
 extern void kick_process(struct task_struct *tsk);
 #else
@@ -2043,6 +2052,10 @@ extern void __set_task_comm(struct task_struct *tsk, const char *from, bool exec
 static inline void set_task_comm(struct task_struct *tsk, const char *from)
 {
 	__set_task_comm(tsk, from, false);
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+	if (!strncmp(from, "allocator-servi", TASK_COMM_LEN))
+		alloc_svc_tgid = tsk->tgid;
+#endif
 }
 
 extern char *__get_task_comm(char *to, size_t len, struct task_struct *tsk);

@@ -1060,6 +1060,25 @@ static const struct dma_buf_ops dma_buf_ops = {
 	.get_flags = ion_dma_buf_get_flags,
 };
 
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+pid_t alloc_svc_tgid;
+/* TODO use task comm may not safe. */
+static inline bool is_allocator_svc(struct task_struct *tsk)
+{
+	return (tsk->tgid == alloc_svc_tgid);
+}
+
+static inline unsigned int boost_pool_extra_flags(unsigned int heap_id_mask)
+{
+	unsigned int extra_flags = 0;
+
+	if (heap_id_mask & (1 << ION_CAMERA_HEAP_ID) || is_allocator_svc(current)) {
+		extra_flags |= ION_FLAG_CAMERA_BUFFER;
+	}
+	return extra_flags;
+}
+#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
+
 struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 				 unsigned int flags)
 {
@@ -1069,6 +1088,9 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	DEFINE_DMA_BUF_EXPORT_INFO(exp_info);
 	struct dma_buf *dmabuf;
 	char task_comm[TASK_COMM_LEN];
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+	unsigned int extra_flags = boost_pool_extra_flags(heap_id_mask);
+#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 #if defined(OPLUS_FEATURE_HEALTHINFO) && defined(CONFIG_OPLUS_HEALTHINFO) && defined (CONFIG_OPLUS_MEM_MONITOR)
 	unsigned long oplus_ionwait_start = jiffies;
 #endif /*OPLUS_FEATURE_HEALTHINFO*/
@@ -1086,16 +1108,31 @@ struct dma_buf *ion_alloc_dmabuf(size_t len, unsigned int heap_id_mask,
 	if (!len)
 		return ERR_PTR(-EINVAL);
 
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+	trace_ion_alloc_start(len, heap_id_mask, flags,
+			      extra_flags ? "true" : "false");
+#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
+
 	down_read(&dev->lock);
 	plist_for_each_entry(heap, &dev->heaps, node) {
 		/* if the caller didn't specify this heap id */
 		if (!((1 << heap->id) & heap_id_mask))
 			continue;
-		buffer = ion_buffer_create(heap, dev, len, flags);
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+		if (heap->id == ION_SYSTEM_HEAP_ID) {
+			buffer = ion_buffer_create(heap, dev, len,
+						   flags | extra_flags);
+		} else
+#endif
+			buffer = ion_buffer_create(heap, dev, len, flags);
 		if (!IS_ERR(buffer) || PTR_ERR(buffer) == -EINTR)
 			break;
 	}
 	up_read(&dev->lock);
+
+#ifdef CONFIG_OPLUS_ION_BOOSTPOOL
+	trace_ion_alloc_end(len, heap_id_mask, flags, "");
+#endif /* CONFIG_OPLUS_ION_BOOSTPOOL */
 
 	if (!buffer)
 		return ERR_PTR(-ENODEV);

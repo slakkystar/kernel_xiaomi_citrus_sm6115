@@ -7,3 +7,4 @@ obj-$(CONFIG_ION) +=	ion.o ion-ioctl.o ion_heap.o \
 			ion_secure_util.o ion_cma_secure_heap.o msm/
 
 obj-$(CONFIG_OPLUS_HEALTHINFO)	+= ion/
+obj-$(CONFIG_OPLUS_ION_BOOSTPOOL) += oplus_ion_boost_pool.o

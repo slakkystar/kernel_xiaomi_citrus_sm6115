@@ -22,6 +22,14 @@
 
 struct rw_semaphore;
 
+#ifdef CONFIG_MMAP_LOCK_OPT
+extern void uxchain_rwsem_wake(struct task_struct *tsk,
+	struct rw_semaphore *sem);
+extern void uxchain_rwsem_down(struct rw_semaphore *sem);
+extern void uxchain_rwsem_up(struct rw_semaphore *sem);
+#define PREEMPT_DISABLE_RWSEM 3000000
+#endif
+
 #ifdef CONFIG_RWSEM_GENERIC_SPINLOCK
 #include <linux/rwsem-spinlock.h> /* use a generic implementation */
 #define __RWSEM_INIT_COUNT(name)	.count = RWSEM_UNLOCKED_VALUE
