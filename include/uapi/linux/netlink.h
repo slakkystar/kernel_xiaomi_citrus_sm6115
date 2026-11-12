@@ -35,7 +35,19 @@
 #define NETLINK_OPLUS_HANS       29      /* Socket for freezing solution */
 #endif /* OPLUS_FEATURE_HANS_FREEZE */
 
-#define MAX_LINKS 32		
+#ifdef CONFIG_OPLUS_FEATURE_WIFI_LUCKYMONEY
+#define NETLINK_OPLUS_NF_HOOKS	32
+#endif /* CONFIG_OPLUS_FEATURE_WIFI_LUCKYMONEY */
+
+#ifdef CONFIG_OPLUS_FEATURE_DHCP
+#define NETLINK_OPLUS_DHCP 38
+#endif /* CONFIG_OPLUS_FEATURE_DHCP */
+
+#ifdef OPLUS_FEATURE_WIFI_LUCKYMONEY
+#define MAX_LINKS 45
+#else
+#define MAX_LINKS 32
+#endif /* OPLUS_FEATURE_WIFI_LUCKYMONEY */
 
 struct sockaddr_nl {
 	__kernel_sa_family_t	nl_family;	/* AF_NETLINK	*/

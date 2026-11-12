@@ -86,3 +86,8 @@ endif
 obj-$(CONFIG_QRTR)		+= qrtr/
 obj-$(CONFIG_NET_NCSI)		+= ncsi/
 obj-$(CONFIG_XDP_SOCKETS)	+= xdp/
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_SLA)    += oplus_connectivity_sla/
+obj-$(CONFIG_OPLUS_FEATURE_DHCP)   += oplus_dhcp/
+obj-$(CONFIG_OPLUS_FEATURE_WIFI_LUCKYMONEY)   += oplus_nf_hooks/
+obj-$(CONFIG_OPLUS_FEATURE_DATA_EVAL)   += oplus_score/
+obj-y   += oplus_modules/

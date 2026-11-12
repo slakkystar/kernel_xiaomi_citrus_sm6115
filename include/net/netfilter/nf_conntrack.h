@@ -87,6 +87,10 @@ struct nf_conn {
 	/* all members below initialized via memset */
 	struct { } __nfct_init_offset;
 
+#ifdef CONFIG_OPLUS_FEATURE_WIFI_LUCKYMONEY
+	u32 oplus_app_uid;
+#endif /* CONFIG_OPLUS_FEATURE_WIFI_LUCKYMONEY */
+
 	/* If we were expected by an expectation, this will be it */
 	struct nf_conn *master;
 
