@@ -122,7 +122,53 @@ config ZRAM_WRITEBACK
 	 With /sys/block/zramX/{idle,writeback}, application could ask
 	 idle page's writeback to the backing device to save in memory.
 
-	 See Documentation/blockdev/zram.txt for more information.
+	  See Documentation/blockdev/zram.txt for more information.
+
+if OPLUS_KERNEL
+
+config HYBRIDSWAP
+	bool "Hybridswap support"
+	depends on MEMCG && ZRAM && !ZRAM_DEDUP && !ZRAM_WRITEBACK
+	default n
+	help
+	  Hybridswap is an in-kernel memory management framework that
+	  stores anonymous pages in zram and reclaims them according to
+	  memory cgroup pressure. It provides the common infrastructure
+	  used by the Hybridswap core and background reclaim thread.
+
+config HYBRIDSWAP_SWAPD
+	bool "Hybridswap background reclaim thread"
+	depends on HYBRIDSWAP
+	default n
+	help
+	  Enable the hybridswapd kernel thread. It reclaims anonymous
+	  pages in the background when swap usage reaches the configured
+	  watermark and the refault rate is high. Depending on memory
+	  pressure, it moves part of the zram contents to the external
+	  swap device (eswap).
+
+config HYBRIDSWAP_CORE
+	bool "Hybridswap core support"
+	depends on ZRAM && HYBRIDSWAP
+	default n
+	help
+	  Enable the Hybridswap core, which provides the zram backend
+	  device, per-memcg LRU and reverse mapping, and the control
+	  interfaces. This code is built as part of the zram driver and
+	  cannot be built as a module.
+
+config HYBRIDSWAP_ASYNC_COMPRESS
+	bool "Hybridswap asynchronous compression"
+	depends on ZRAM && HYBRIDSWAP
+	default n
+	help
+	  Enable asynchronous compression of anonymous pages. Pages
+	  written by kswapd or hybridswapd are first placed in a
+	  per-memcg cache and compressed later by akcompressd kernel
+	  threads. This moves compression work off the write path and
+	  reduces reclaim CPU load. If unsure, say N.
+
+endif # OPLUS_KERNEL
 
 config ZRAM_MEMORY_TRACKING
 	bool "Track zRam block status"
