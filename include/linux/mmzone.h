@@ -916,6 +916,10 @@ typedef struct pglist_data {
 
 	int kswapd_failures;		/* Number of 'reclaimed == 0' runs */
 
+#ifdef CONFIG_HYBRIDSWAP_SWAPD
+	u64 android_oem_data1;
+#endif
+
 #ifdef CONFIG_COMPACTION
 	int kcompactd_max_order;
 	enum zone_type kcompactd_classzone_idx;
