@@ -112,6 +112,7 @@ void del_page_from_cache(struct page *page)
 {
 	int cache_id;
 	struct cgroup_cache_page *cache;
+	memcg_hybs_t *hybs;
 
 	if (!page)
 		return;
@@ -123,15 +124,18 @@ void del_page_from_cache(struct page *page)
 		return;
 	}
 
-	cache = find_and_get_memcg_cache(cache_id);
+	spin_lock(&cached_idr_lock);
+	cache = idr_find(&cached_idr, cache_id);
+	spin_unlock(&cached_idr_lock);
 	if (!cache)
 		return;
 
+	hybs = container_of(cache, memcg_hybs_t, cache);
 	spin_lock(&cache->lock);
 	list_del(&page->lru);
 	cache->cnt--;
 	spin_unlock(&cache->lock);
-	put_memcg_cache(container_of(cache, memcg_hybs_t, cache));
+	put_memcg_cache(hybs);
 	atomic64_dec(&cached_cnt);
 }
 
@@ -257,6 +261,7 @@ int add_anon_page2cache(struct zram * zram, u32 index, struct page *page)
 	void *src, *dst;
 	struct mem_cgroup *memcg;
 	struct cgroup_cache_page *cache;
+	struct cgroup_cache_page *found;
 	memcg_hybs_t *hybs;
 
 	if (akcompressd_threads == 0)
@@ -268,19 +273,26 @@ int add_anon_page2cache(struct zram * zram, u32 index, struct page *page)
 
 	hybs = MEMCGRP_ITEM_DATA(memcg);
 	cache = &hybs->cache;
-	if (find_and_get_memcg_cache(cache->id) != cache)
+	found = find_and_get_memcg_cache(cache->id);
+	if (found != cache) {
+		if (found)
+			put_memcg_cache(container_of(found, memcg_hybs_t, cache));
 		return 0;
+	}
 
 	spin_lock(&cache->lock);
 	if (cache->dead == 1) {
 		spin_unlock(&cache->lock);
+		put_memcg_cache(hybs);
 		return 0;
 	}
 	spin_unlock(&cache->lock);
 
 	dst_page = get_free_page();
-	if (!dst_page)
+	if (!dst_page) {
+		put_memcg_cache(hybs);
 		return 0;
+	}
 
 	src = kmap_atomic(page);
 	dst = kmap_atomic(dst_page);
