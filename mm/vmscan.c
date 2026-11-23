@@ -65,6 +65,7 @@
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/vmscan.h>
+#undef CREATE_TRACE_POINTS
 #include <trace/hooks/vh_vmscan.h>
 
 struct scan_control {
