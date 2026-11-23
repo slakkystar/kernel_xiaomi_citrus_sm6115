@@ -97,6 +97,13 @@ config THREAD_INFO_IN_TASK
 
 menu "General setup"
 
+config OPLUS_KERNEL
+	bool "Oplus kernel features"
+	default n
+	help
+	  Enable Oplus-specific kernel features. Disable this to build a
+	  clean upstream-like kernel without Oplus extensions.
+
 config BROKEN
 	bool
 
