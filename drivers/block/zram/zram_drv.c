@@ -1282,6 +1282,7 @@ void update_zram_index(struct zram *zram, u32 index, unsigned long page)
 	zram_set_flag(zram, index, ZRAM_CACHED);
 	zram_set_page(zram, index, page);
 	zram_set_obj_size(zram, index, PAGE_SIZE);
+	atomic64_inc(&zram->stats.pages_stored);
 	zram_slot_unlock(zram, index);
 }
 
