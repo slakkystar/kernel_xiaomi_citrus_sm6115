@@ -10,6 +10,7 @@
 #include <linux/atomic.h>
 #include <linux/idr.h>
 #include <linux/freezer.h>
+#include <linux/genhd.h>
 
 #include "../zram_drv.h"
 #include "../zram_drv_internal.h"
@@ -72,7 +73,8 @@ static inline struct page * get_free_page(void)
 	if (compress_info.free_cnt > 0) {
 		if (list_empty(&compress_info.free_page_head))
 			BUG();
-		page = lru_to_page(&compress_info.free_page_head);
+		page = list_last_entry(&compress_info.free_page_head,
+					struct page, lru);
 		list_del(&page->lru);
 		compress_info.free_cnt--;
 	}
@@ -226,7 +228,7 @@ try_again:
 
 	spin_lock(&cache->lock);
 	if (!list_empty(&cache->head)) {
-		page = lru_to_page(&cache->head);
+		page = list_last_entry(&cache->head, struct page, lru);
 		index = get_zram_index(page);
 	}
 	spin_unlock(&cache->lock);
@@ -540,7 +542,7 @@ void __exit akcompressd_pre_deinit(void)
 		goto out;
 	list_for_each_entry_safe(page, tmp, &compress_info.free_page_head , lru) {
 		list_del(&page->lru);
-		free_page(page);
+		__free_page(page);
 	}
 
 out:
