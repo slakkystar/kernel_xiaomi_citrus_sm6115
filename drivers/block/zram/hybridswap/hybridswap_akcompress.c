@@ -532,7 +532,7 @@ void __init akcompressd_pre_init(void)
 	mutex_unlock(&akcompress_init_lock);
 }
 
-void __exit akcompressd_pre_deinit(void)
+void akcompressd_pre_deinit(void)
 {
 	int i;
 	struct page *page, *tmp;

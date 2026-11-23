@@ -553,7 +553,7 @@ extern spinlock_t cached_idr_lock;
 extern struct idr cached_idr;
 
 extern void __init akcompressd_pre_init(void);
-extern void __exit akcompressd_pre_deinit(void);
+extern void akcompressd_pre_deinit(void);
 extern int create_akcompressd_task(struct zram *zram);
 extern void clear_page_memcg(struct cgroup_cache_page *cache);
 #endif
