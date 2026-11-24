@@ -1,0 +1,19 @@
+config PHYSICAL_ANTI_FRAGMENTATION
+	bool "Physical memory anti-fragmentation"
+	depends on !S390
+	default y
+	help
+	  Split the buddy allocator free lists of each zone into four
+	  free areas (FLCs) covering equal page frame ranges, and keep
+	  the pages of every free list ordered by their physical
+	  address.
+
+	  Free pages are inserted into the area matching their PFN and
+	  are kept sorted around the midpoint of that area.  For order
+	  3 and above the free area index is mirrored, so allocation
+	  preference runs from the opposite end of the zone.  This
+	  keeps large contiguous blocks together and reduces physical
+	  memory fragmentation on long-running devices.
+
+	  Say Y here to enable physical memory anti-fragmentation.
+	  If unsure, say Y.

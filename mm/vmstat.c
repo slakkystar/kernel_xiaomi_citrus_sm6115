@@ -1021,16 +1021,26 @@ static void fill_contig_page_info(struct zone *zone,
 				struct contig_page_info *info)
 {
 	unsigned int order;
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	int flc;
+#endif
 
 	info->free_pages = 0;
 	info->free_blocks_total = 0;
 	info->free_blocks_suitable = 0;
 
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	for (flc = 0; flc < FREE_AREA_COUNTS; flc++) {
+#endif
 	for (order = 0; order < MAX_ORDER; order++) {
 		unsigned long blocks;
 
 		/* Count number of free blocks */
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+		blocks = zone->free_area[flc][order].nr_free;
+#else
 		blocks = zone->free_area[order].nr_free;
+#endif
 		info->free_blocks_total += blocks;
 
 		/* Count free base pages */
@@ -1041,6 +1051,9 @@ static void fill_contig_page_info(struct zone *zone,
 			info->free_blocks_suitable += blocks <<
 						(order - suitable_order);
 	}
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	}
+#endif
 }
 
 /*
@@ -1366,10 +1379,21 @@ static void frag_show_print(struct seq_file *m, pg_data_t *pgdat,
 						struct zone *zone)
 {
 	int order;
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	int flc;
+#endif
 
 	seq_printf(m, "Node %d, zone %8s ", pgdat->node_id, zone->name);
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	for (flc = 0; flc < FREE_AREA_COUNTS; flc++) {
+		for (order = 0; order < MAX_ORDER; ++order)
+			seq_printf(m, "%6lu ",
+				   zone->free_area[flc][order].nr_free);
+	}
+#else
 	for (order = 0; order < MAX_ORDER; ++order)
 		seq_printf(m, "%6lu ", zone->free_area[order].nr_free);
+#endif
 	seq_putc(m, '\n');
 }
 
@@ -1387,7 +1411,11 @@ static void pagetypeinfo_showfree_print(struct seq_file *m,
 					pg_data_t *pgdat, struct zone *zone)
 {
 	int order, mtype;
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	int flc;
 
+	for (flc = 0; flc < FREE_AREA_COUNTS; flc++) {
+#endif
 	for (mtype = 0; mtype < MIGRATE_TYPES; mtype++) {
 		seq_printf(m, "Node %4d, zone %8s, type %12s ",
 					pgdat->node_id,
@@ -1398,7 +1426,11 @@ static void pagetypeinfo_showfree_print(struct seq_file *m,
 			struct free_area *area;
 			struct list_head *curr;
 
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+			area = &(zone->free_area[flc][order]);
+#else
 			area = &(zone->free_area[order]);
+#endif
 
 			list_for_each(curr, &area->free_list[mtype])
 				freecount++;
@@ -1409,6 +1441,9 @@ static void pagetypeinfo_showfree_print(struct seq_file *m,
 		}
 		seq_putc(m, '\n');
 	}
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	}
+#endif
 }
 
 /* Print out the free pages at each order for each migatetype */

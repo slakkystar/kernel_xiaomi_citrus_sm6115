@@ -448,16 +448,26 @@ static DEVICE_ATTR(valid_zones, 0444, show_valid_zones, NULL);
 static int count_num_free_block_pages(struct zone *zone, int bid)
 {
 	int order, type;
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	int flc;
+#endif
 	unsigned long freecount = 0;
 	unsigned long flags;
 
 	spin_lock_irqsave(&zone->lock, flags);
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	for (flc = 0; flc < FREE_AREA_COUNTS; flc++) {
+#endif
 	for (type = 0; type < MIGRATE_TYPES; type++) {
 		for (order = 0; order < MAX_ORDER; ++order) {
 			struct free_area *area;
 			struct page *page;
 
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+			area = &(zone->free_area[flc][order]);
+#else
 			area = &(zone->free_area[order]);
+#endif
 			list_for_each_entry(page, &area->free_list[type], lru) {
 				unsigned long pfn = page_to_pfn(page);
 				int section_nr = pfn_to_section_nr(pfn);
@@ -468,6 +478,9 @@ static int count_num_free_block_pages(struct zone *zone, int bid)
 
 		}
 	}
+#ifdef CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+	}
+#endif
 	spin_unlock_irqrestore(&zone->lock, flags);
 
 	return freecount;
