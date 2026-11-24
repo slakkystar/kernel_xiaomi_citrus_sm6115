@@ -113,3 +113,4 @@ obj-$(CONFIG_MEMFD_ASHMEM_SHIM) += memfd-ashmem-shim.o
 obj-$(CONFIG_PROCESS_RECLAIM)	+= process_reclaim.o
 obj-$(CONFIG_SHRINK_LRU_TRYLOCK) += reclaim_lessdelay/
 obj-$(CONFIG_KSHRINK_SLABD) += kshrink_slabd/
+obj-$(CONFIG_PROACTIVE_COMPACT) += proactive_compact/

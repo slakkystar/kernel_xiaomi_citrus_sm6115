@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2020-2022 Oplus. All rights reserved.
+
+config PROACTIVE_COMPACT
+	tristate "Proactive compaction using a fragmentation index"
+	default n
+	help
+	  Expose the external fragmentation of the first memory node
+	  through /proc/oplus_mem/fragmentation_index.  Userspace can
+	  read the index to decide whether compaction is needed and can
+	  tune the target page order and proactiveness through the same
+	  file or through the compaction_hpage_order and
+	  compaction_proactiveness module parameters.
+
+	  The index is the fragmentation for the configured page order,
+	  weighted by zone size; a node is reported as fragmented when
+	  the index exceeds the watermark derived from the proactiveness
+	  value.
+
+	  Say Y here to enable the fragmentation index interface.  If
+	  unsure, say N.

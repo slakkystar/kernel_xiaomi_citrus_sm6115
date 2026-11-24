@@ -926,5 +926,6 @@ config DYNAMIC_TUNNING_SWAPPINESS
 
 source "mm/reclaim_lessdelay/Kconfig"
 source "mm/kshrink_slabd/Kconfig"
+source "mm/proactive_compact/Kconfig"
 
 endif # OPLUS_KERNEL
