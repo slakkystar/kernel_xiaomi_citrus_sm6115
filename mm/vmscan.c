@@ -5633,7 +5633,7 @@ static bool shrink_node(pg_data_t *pgdat, struct scan_control *sc)
 #ifdef CONFIG_KSHRINK_SLABD
 			shrink_slab_async_success = wakeup_shrink_slabd(sc->gfp_mask,
 							pgdat->node_id,
-							memcg, sc->priority, reclaim_state);
+							memcg, sc->priority);
 			if (unlikely(!shrink_slab_async_success))
 #endif
 			{

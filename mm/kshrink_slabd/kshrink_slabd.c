@@ -66,8 +66,7 @@ static struct reclaim_state async_reclaim_state = {
 };
 
 bool wakeup_shrink_slabd(gfp_t gfp_mask, int nid,
-				 struct mem_cgroup *memcg,
-				 int priority, struct reclaim_state *reclaim_state)
+				 struct mem_cgroup *memcg, int priority)
 {
 	if (unlikely(!kshrink_slabd_setup))
 		return false;
@@ -75,8 +74,10 @@ bool wakeup_shrink_slabd(gfp_t gfp_mask, int nid,
 	if (asp.shrink_slabd_runnable == 1)
 		return true;
 
+	if (memcg && !css_tryget_online(&memcg->css))
+		return false;
+
 	async_reclaim_state.reclaimed_slab = 0;
-	current->reclaim_state = reclaim_state = &async_reclaim_state;
 
 	asp.shrink_slabd_gfp_mask = gfp_mask;
 	asp.shrink_slabd_nid = nid;
@@ -95,7 +96,7 @@ void set_kshrink_slabd_cpus(void)
 	struct cpumask *cpumask = &mask;
 	pg_data_t *pgdat = NODE_DATA(0);
 	unsigned int cpu = 0, cpufreq_max_tmp = 0;
-	struct cpufreq_policy *policy_max;
+	struct cpufreq_policy *policy_max = NULL;
 	static bool set_slabd_cpus_success = false;
 
 	if (unlikely(!kshrink_slabd_setup))
@@ -111,12 +112,20 @@ void set_kshrink_slabd_cpus(void)
 
 		if (policy->cpuinfo.max_freq >= cpufreq_max_tmp) {
 			cpufreq_max_tmp = policy->cpuinfo.max_freq;
+			if (policy_max)
+				cpufreq_cpu_put(policy_max);
 			policy_max = policy;
+		} else {
+			cpufreq_cpu_put(policy);
 		}
 	}
 
+	if (!policy_max)
+		return;
+
 	cpumask_copy(cpumask, cpumask_of_node(pgdat->node_id));
 	cpumask_andnot(cpumask, cpumask, policy_max->related_cpus);
+	cpufreq_cpu_put(policy_max);
 
 	if (!cpumask_empty(cpumask)) {
 		set_cpus_allowed_ptr(shrink_slabd_tsk, cpumask);
@@ -163,6 +172,7 @@ static int kshrink_slabd_func(void *p)
 		memcg = asp.shrink_slabd_memcg;
 
 		shrink_slab(gfp_mask, nid, memcg, priority);
+		mem_cgroup_put(memcg);
 
 		asp.shrink_slabd_runnable = 0;
 	}
