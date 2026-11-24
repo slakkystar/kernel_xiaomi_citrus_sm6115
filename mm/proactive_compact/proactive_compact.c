@@ -17,6 +17,7 @@
 static unsigned int g_compaction_hpage_order = 4;
 static unsigned int g_compaction_proactiveness = 20;
 static struct proc_dir_entry *fragmentation_index_entry;
+static struct proc_dir_entry *oplus_mem_dir;
 
 struct contig_page_info {
 	unsigned long free_pages;
@@ -24,7 +25,8 @@ struct contig_page_info {
 	unsigned long free_blocks_suitable;
 };
 
-static inline bool debug_get_val(char *buf, char *token, unsigned long *val)
+static inline int debug_get_val(const char *buf, const char *token,
+				unsigned long *val, unsigned long max)
 {
 	int ret = -EINVAL;
 	char *str = strstr(buf, token);
@@ -36,7 +38,7 @@ static inline bool debug_get_val(char *buf, char *token, unsigned long *val)
 	if (ret)
 		return -EINVAL;
 
-	if (*val > 200) {
+	if (*val > max) {
 		pr_err("%lu is invalid\n", *val);
 		return -EINVAL;
 	}
@@ -101,7 +103,10 @@ static unsigned int external_fragmentation_for_order(struct zone *zone, unsigned
  */
 static unsigned int fragmentation_score_zone(struct zone *zone)
 {
-	return external_fragmentation_for_order(zone, g_compaction_hpage_order);
+	unsigned int order = min(g_compaction_hpage_order,
+				 (unsigned int)(MAX_ORDER - 1));
+
+	return external_fragmentation_for_order(zone, order);
 }
 
 static unsigned int fragmentation_score_zone_weighted(struct zone *zone)
@@ -127,8 +132,9 @@ static unsigned int fragmentation_score_node(pg_data_t *pgdat)
 	return score;
 }
 
-static unsigned int fragmentation_score_wmark(pg_data_t *pgdat)
+static unsigned int fragmentation_score_wmark(void)
 {
+	unsigned int proactiveness = min(g_compaction_proactiveness, 100U);
 	unsigned int wmark_low;
 
 	/*
@@ -136,7 +142,7 @@ static unsigned int fragmentation_score_wmark(pg_data_t *pgdat)
 	 * activity in case a user sets the proactiveness tunable
 	 * close to 100 (maximum).
 	 */
-	wmark_low = max(100U - g_compaction_proactiveness, 5U);
+	wmark_low = max(100U - proactiveness, 5U);
 	return min(wmark_low + 10, 100U);
 }
 
@@ -144,7 +150,7 @@ static bool should_proactive_compact_node(pg_data_t *pgdat)
 {
 	int wmark_high;
 
-	wmark_high = fragmentation_score_wmark(pgdat);
+	wmark_high = fragmentation_score_wmark();
 	return fragmentation_score_node(pgdat) > wmark_high;
 }
 
@@ -156,7 +162,7 @@ static ssize_t fragmentation_index_write(struct file *file,
 	unsigned long val;
 
 	if ((len > PARA_BUF_LEN - 1) || (len == 0)) {
-		pr_err("len %d is invalid\n", len);
+		pr_err("len %zu is invalid\n", len);
 		return -EINVAL;
 	}
 
@@ -170,12 +176,13 @@ static ssize_t fragmentation_index_write(struct file *file,
 		return -EINVAL;
 	}
 
-	if (!debug_get_val(str, "compaction_hpage_order=", &val)) {
+	if (!debug_get_val(str, "compaction_hpage_order=", &val,
+			   MAX_ORDER - 1)) {
 		g_compaction_hpage_order = val;
 		return len;
 	}
 
-	if (!debug_get_val(str, "compaction_proactiveness=", &val)) {
+	if (!debug_get_val(str, "compaction_proactiveness=", &val, 100)) {
 		g_compaction_proactiveness = val;
 		return len;
 	}
@@ -191,14 +198,14 @@ static ssize_t fragmentation_index_read(struct file *file,
 	pg_data_t *pgdat;
 
 	pgdat = NODE_DATA(0);
+	if (!pgdat)
+		return -ENODEV;
+
 	if (should_proactive_compact_node(pgdat))
 		is_fragmented = 1;
 
 	len = scnprintf(kbuf, PARA_BUF_LEN, "%d %d %d\n", is_fragmented,
 			g_compaction_hpage_order, g_compaction_proactiveness);
-
-	if (len == PARA_BUF_LEN)
-		kbuf[len - 1] = '\0';
 
 	if (len > *off)
 		len -= *off;
@@ -219,15 +226,20 @@ static const struct file_operations proc_fragmentation_index_ops = {
 
 static int __init create_fragmentation_index_proc(void)
 {
-	struct proc_dir_entry *root_dir_entry = proc_mkdir("oplus_mem", NULL);
+	oplus_mem_dir = proc_mkdir("oplus_mem", NULL);
 
-	fragmentation_index_entry = proc_create((root_dir_entry ?
+	fragmentation_index_entry = proc_create((oplus_mem_dir ?
 				"fragmentation_index" : "oplus_mem/fragmentation_index"),
-				0666, root_dir_entry, &proc_fragmentation_index_ops);
+				0666, oplus_mem_dir, &proc_fragmentation_index_ops);
 
 	if (fragmentation_index_entry) {
 		pr_info("Register fragmentation_index interface passed!\n");
 		return 0;
+	}
+
+	if (oplus_mem_dir) {
+		proc_remove(oplus_mem_dir);
+		oplus_mem_dir = NULL;
 	}
 
 	pr_err("Register fragmentation_index interface failed!\n");
@@ -238,6 +250,11 @@ static void __exit destroy_fragmentation_index_proc(void)
 {
 	proc_remove(fragmentation_index_entry);
 	fragmentation_index_entry = NULL;
+
+	if (oplus_mem_dir) {
+		proc_remove(oplus_mem_dir);
+		oplus_mem_dir = NULL;
+	}
 }
 
 static int __init proactive_compact_init(void)
@@ -257,13 +274,36 @@ static void __exit proactive_compact_exit(void)
 	destroy_fragmentation_index_proc();
 
 	pr_info("proactive_compact exit success!\n");
-	return;
 }
+
+static int compaction_hpage_order_set(const char *val,
+		const struct kernel_param *kp)
+{
+	return param_set_uint_minmax(val, kp, 0, MAX_ORDER - 1);
+}
+
+static int compaction_proactiveness_set(const char *val,
+		const struct kernel_param *kp)
+{
+	return param_set_uint_minmax(val, kp, 0, 100);
+}
+
+static const struct kernel_param_ops compaction_hpage_order_ops = {
+	.set = compaction_hpage_order_set,
+	.get = param_get_uint,
+};
+
+static const struct kernel_param_ops compaction_proactiveness_ops = {
+	.set = compaction_proactiveness_set,
+	.get = param_get_uint,
+};
 
 module_init(proactive_compact_init);
 module_exit(proactive_compact_exit);
 
-module_param_named(compaction_hpage_order, g_compaction_hpage_order, uint, S_IRUGO | S_IWUSR);
-module_param_named(compaction_proactiveness, g_compaction_proactiveness, uint, S_IRUGO | S_IWUSR);
+module_param_cb(compaction_hpage_order, &compaction_hpage_order_ops,
+		&g_compaction_hpage_order, 0644);
+module_param_cb(compaction_proactiveness, &compaction_proactiveness_ops,
+		&g_compaction_proactiveness, 0644);
 
 MODULE_LICENSE("GPL v2");

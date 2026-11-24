@@ -3,6 +3,7 @@
 
 config PROACTIVE_COMPACT
 	tristate "Proactive compaction using a fragmentation index"
+	depends on PROC_FS
 	default n
 	help
 	  Expose the external fragmentation of the first memory node
