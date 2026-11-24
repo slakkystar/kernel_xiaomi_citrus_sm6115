@@ -1,0 +1,16 @@
+config KSHRINK_SLABD
+	bool "Enable asynchronous slab shrinker daemon"
+	default n
+	help
+	  Move slab shrinking out of the direct-reclaim path and into a
+	  background kthread.  When direct reclaim wants to shrink slab
+	  caches, it wakes kshrink_slabd instead of calling shrink_slab()
+	  synchronously; the daemon runs the shrinker work on a CPU that
+	  is not the highest-frequency CPU.
+
+	  This can reduce allocation latency for the caller at the cost
+	  of doing the slab reclaim asynchronously.  The daemon is
+	  started at boot and only runs when woken.
+
+	  Say Y here to enable the asynchronous slab shrinker daemon.
+	  If unsure, say N.

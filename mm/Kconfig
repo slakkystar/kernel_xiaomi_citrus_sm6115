@@ -900,3 +900,9 @@ config MEMFD_ASHMEM_SHIM
 	  now memfds passed to them.
 
 	  Unless you are running Android, say N.
+
+if OPLUS_KERNEL
+
+source "mm/kshrink_slabd/Kconfig"
+
+endif # OPLUS_KERNEL
