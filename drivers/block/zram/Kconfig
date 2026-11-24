@@ -86,6 +86,16 @@ config ZRAM_WRITEBACK
 
 if OPLUS_KERNEL
 
+config OPLUS_ZRAM_OPT
+	bool "oplus zram optimization"
+	depends on ZRAM
+	default y
+	help
+	  Enable zram-specific memory management tuning.  This increases
+	  the maximum zsmalloc page order, disables swap clustering,
+	  adjusts watermark handling for hard allocations, and exposes
+	  the direct reclaim swappiness control.
+
 config HYBRIDSWAP
 	bool "Hybridswap support"
 	depends on MEMCG && ZRAM && !ZRAM_DEDUP && !ZRAM_WRITEBACK

@@ -903,6 +903,27 @@ config MEMFD_ASHMEM_SHIM
 
 if OPLUS_KERNEL
 
+config DYNAMIC_TUNNING_SWAPPINESS
+	bool "Tune kswapd swappiness from the file page count"
+	default n
+	help
+	  Expose two swappiness thresholds and their sizes through
+	  /proc/sys/vm/vm_swappiness_threshold{1,2} and
+	  /proc/sys/vm/swappiness_threshold{1,2}_size.  The size
+	  values are in units of 256 pages (1 MB with 4 KB pages).
+
+	  When OPLUS_ZRAM_OPT is enabled, kswapd lowers its swappiness
+	  once the number of active and inactive file pages reaches a
+	  threshold size, provided the matching threshold is below the
+	  current swappiness.  This makes kswapd reclaim file pages in
+	  preference to anonymous pages when file pages are plentiful.
+
+	  The option also changes watermark boosting to set
+	  ZONE_BOOSTED_WATERMARK only when a boost was actually applied.
+
+	  Say Y here to enable dynamic kswapd swappiness tuning.
+	  If unsure, say N.
+
 source "mm/reclaim_lessdelay/Kconfig"
 source "mm/kshrink_slabd/Kconfig"
 
