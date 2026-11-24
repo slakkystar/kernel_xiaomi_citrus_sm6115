@@ -1,0 +1,16 @@
+config SHRINK_LRU_TRYLOCK
+	bool "Enable asynchronous LRU reclaim daemon"
+	default n
+	help
+	  Reclaim pages that could not be locked by the normal LRU
+	  shrinker on the first attempt asynchronously, instead of
+	  blocking the caller or dropping the pages back to the LRU.
+
+	  Pages whose trylock fails are collected on a private inactive
+	  list (bounded to about 16MB) and a background kthread retries
+	  reclaiming them on a CPU that is not the highest-frequency
+	  CPU.  This reduces latency spikes caused by contended page
+	  locks during direct reclaim.
+
+	  Say Y here to enable the asynchronous LRU reclaim daemon.
+	  If unsure, say N.

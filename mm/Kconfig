@@ -903,6 +903,7 @@ config MEMFD_ASHMEM_SHIM
 
 if OPLUS_KERNEL
 
+source "mm/reclaim_lessdelay/Kconfig"
 source "mm/kshrink_slabd/Kconfig"
 
 endif # OPLUS_KERNEL
