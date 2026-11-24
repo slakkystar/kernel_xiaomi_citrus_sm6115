@@ -41,10 +41,6 @@
 #include <linux/cpufreq.h>
 #include <linux/proc_fs.h>
 
-#if defined(OPLUS_FEATURE_PROCESS_RECLAIM) && defined(CONFIG_PROCESS_RECLAIM_ENHANCE)
-#include <linux/process_mm_reclaim.h>
-#endif
-
 #include "../internal.h"
 
 #define SHRINK_LRUVECD_HIGH (0x1000)  //16Mbytes
