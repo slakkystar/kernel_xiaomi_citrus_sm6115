@@ -133,6 +133,4 @@ DEFINE_EVENT(sched_locking_template, select_locking_thread,
 #endif /* _OPLUS_SCHED_TRACE_H */
 
 /* This part must be outside protection */
-#undef TRACE_INCLUDE_PATH
-#define TRACE_INCLUDE_PATH linux/sched_assist
 #include <trace/define_trace.h>

@@ -39,7 +39,7 @@ extern bool is_webview(struct task_struct *p);
 #endif
 
 #define CREATE_TRACE_POINTS
-#include <linux/sched_assist/sched_assist_trace.h>
+#include <trace/events/sched_assist_trace.h>
 
 #define MS_TO_NS (1000000)
 #define MAX_INHERIT_GRAN ((u64)(64 * MS_TO_NS))
