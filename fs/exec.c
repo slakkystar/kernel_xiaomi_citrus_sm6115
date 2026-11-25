@@ -1254,11 +1254,18 @@ EXPORT_SYMBOL_GPL(__get_task_comm);
  * so that a new one can be started
  */
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+extern void sched_assist_target_comm(struct task_struct *task);
+#endif
+
 void __set_task_comm(struct task_struct *tsk, const char *buf, bool exec)
 {
 	task_lock(tsk);
 	trace_task_rename(tsk, buf);
 	strlcpy(tsk->comm, buf, sizeof(tsk->comm));
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	sched_assist_target_comm(tsk);
+#endif
 	task_unlock(tsk);
 	perf_event_comm(tsk, exec);
 }

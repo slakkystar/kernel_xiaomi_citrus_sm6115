@@ -109,6 +109,13 @@
 
 #include "../../lib/kstrtox.h"
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+#define GLOBAL_SYSTEM_UID KUIDT_INIT(1000)
+#define GLOBAL_SYSTEM_GID KGIDT_INIT(1000)
+extern const struct file_operations proc_ux_state_operations;
+extern bool is_special_entry(struct dentry *dentry, const char *special_proc);
+#endif
+
 /* NOTE:
  *	Implementing inode permission operations in /proc is almost
  *	certainly an error.  Permission checks need to happen during
@@ -2160,6 +2167,12 @@ static int pid_revalidate(struct dentry *dentry, unsigned int flags)
 
 	if (task) {
 		pid_update_inode(task, inode);
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+		if (is_special_entry(dentry, "ux_state")) {
+			inode->i_uid = GLOBAL_SYSTEM_UID;
+			inode->i_gid = GLOBAL_SYSTEM_GID;
+		}
+#endif
 		put_task_struct(task);
 		return 1;
 	}
@@ -3515,6 +3528,9 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("sched_boost", 0666,  proc_task_boost_enabled_operations),
 	REG("sched_boost_period_ms", 0666, proc_task_boost_period_operations),
 	REG("sched_low_latency", 00666, proc_pid_sched_low_latency_operations),
+#endif
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	REG("ux_state", S_IRUGO | S_IWUGO, proc_ux_state_operations),
 #endif
 #ifdef CONFIG_SCHED_DEBUG
 	REG("sched",      S_IRUGO|S_IWUSR, proc_pid_sched_operations),
