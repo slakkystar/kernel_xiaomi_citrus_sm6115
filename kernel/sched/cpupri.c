@@ -125,6 +125,13 @@ drop_nopreempt_cpus(struct cpumask *lowest_mask)
 	}
 }
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+#include <linux/sched_assist/sched_assist_common.h>
+extern void drop_ux_task_cpus(struct task_struct *p, struct cpumask *lowest_mask);
+extern void kick_min_cpu_from_mask(struct cpumask *lowest_mask);
+extern bool sf_task_misfit(struct task_struct *p);
+#endif
+
 /**
  * cpupri_find_fitness - find the best (lowest-pri) CPU in the system
  * @cp: The cpupri context
@@ -148,6 +155,9 @@ int cpupri_find_fitness(struct cpupri *cp, struct task_struct *p,
 {
 	int task_pri = convert_prio(p->prio);
 	bool drop_nopreempts = task_pri <= MAX_RT_PRIO + 1;
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	bool drop_uxtasks = sysctl_sched_assist_enabled;
+#endif
 	int idx, cpu;
 
 	BUG_ON(task_pri >= CPUPRI_NR_PRIORITIES);
@@ -163,6 +173,14 @@ retry:
 
 		if (drop_nopreempts)
 			drop_nopreempt_cpus(lowest_mask);
+
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+		if (drop_uxtasks) {
+			drop_ux_task_cpus(p, lowest_mask);
+			if (sf_task_misfit(p))
+				kick_min_cpu_from_mask(lowest_mask);
+		}
+#endif
 
 		/* Ensure the capacity of the CPUs fit the task */
 		for_each_cpu(cpu, lowest_mask) {
@@ -188,6 +206,12 @@ retry:
 		drop_nopreempts = false;
 		goto retry;
 	}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (drop_uxtasks) {
+		drop_uxtasks = false;
+		goto retry;
+	}
+#endif
 
 	/*
 	 * If we failed to find a fitting lowest_mask, kick off a new search

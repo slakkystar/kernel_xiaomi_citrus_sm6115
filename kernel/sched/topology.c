@@ -4,6 +4,10 @@
  */
 #include "sched.h"
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+extern void update_ux_sched_cputopo(void);
+#endif
+
 DEFINE_MUTEX(sched_domains_mutex);
 
 /* Protected by sched_domains_mutex: */
@@ -2038,6 +2042,9 @@ build_sched_domains(const struct cpumask *cpu_map, struct sched_domain_attr *att
 		static_branch_enable_cpuslocked(&sched_asym_cpucapacity);
 
 	ret = 0;
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	update_ux_sched_cputopo();
+#endif
 error:
 	__free_domain_allocs(&d, alloc_state, cpu_map);
 

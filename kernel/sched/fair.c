@@ -23,8 +23,20 @@
 #include "sched.h"
 
 #include <trace/events/sched.h>
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+#include <linux/sched_assist/sched_assist_common.h>
+#include <linux/special_opt/special_opt.h>
+#include <linux/cpufreq.h>
+#endif
 
 #include "walt.h"
+
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+bool ux_task_misfit(struct task_struct *p, int cpu);
+bool prefer_silver_check_freq(int cpu);
+bool prefer_silver_check_task_util(struct task_struct *p);
+bool prefer_silver_check_cpu_util(int cpu);
+#endif
 
 #ifdef CONFIG_SMP
 static inline bool task_fits_max(struct task_struct *p, int cpu);
@@ -4050,6 +4062,11 @@ static inline bool task_fits_capacity(struct task_struct *p,
 			sched_capacity_margin_up_boosted[task_cpu(p)] :
 			sched_capacity_margin_up[task_cpu(p)];
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (sched_assist_task_misfit(p, cpu, 0))
+		return false;
+#endif
+
 	return capacity * 1024 > uclamp_task(p) * margin;
 }
 
@@ -4253,7 +4270,11 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 
 		vruntime -= thresh;
 #ifdef CONFIG_SCHED_WALT
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+		if (entity_is_task(se) && !test_task_ux(task_of(se))) {
+#else
 		if (entity_is_task(se)) {
+#endif
 			if ((per_task_boost(task_of(se)) ==
 					TASK_BOOST_STRICT_MAX) ||
 					walt_low_latency_task(task_of(se)) ||
@@ -4290,6 +4311,9 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 		se->vruntime = vruntime;
 	else
 		se->vruntime = max_vruntime(se->vruntime, vruntime);
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	place_entity_adjust_ux_task(cfs_rq, se, initial);
+#endif
 }
 
 static void check_enqueue_throttle(struct cfs_rq *cfs_rq);
@@ -4512,6 +4536,10 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 
 	ideal_runtime = sched_slice(cfs_rq, curr);
 	delta_exec = curr->sum_exec_runtime - curr->prev_sum_exec_runtime;
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (is_heavy_load_task(current))
+		ideal_runtime = HEAVY_LOAD_RUNTIME;
+#endif
 	if (delta_exec > ideal_runtime) {
 		resched_curr(rq_of(cfs_rq));
 		/*
@@ -4521,6 +4549,10 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 		clear_buddies(cfs_rq, curr);
 		return;
 	}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (is_heavy_load_task(current))
+		return;
+#endif
 
 	/*
 	 * Ensure that a task that missed wakeup preemption by a
@@ -4596,6 +4628,10 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 		left = curr;
 
 	se = left; /* ideally we run the leftmost entity */
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (should_ux_task_skip_further_check(se))
+		return se;
+#endif
 
 	/*
 	 * Avoid running the skip buddy, if running something else can
@@ -5676,6 +5712,9 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 		flags = ENQUEUE_WAKEUP;
 	}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	enqueue_ux_thread(rq, p);
+#endif
 
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
@@ -5786,6 +5825,9 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 		}
 		flags |= DEQUEUE_SLEEP;
 	}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	dequeue_ux_thread(rq, p);
+#endif
 
 	for_each_sched_entity(se) {
 		cfs_rq = cfs_rq_of(se);
@@ -7126,6 +7168,21 @@ static int get_start_cpu(struct task_struct *p, bool sync_boost)
 		start_cpu = rd->mid_cap_orig_cpu == -1 ?
 			rd->max_cap_orig_cpu : rd->mid_cap_orig_cpu;
 	}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (sched_assist_scene(SA_SLIDE) && is_heavy_ux_task(p) &&
+	    (task_util(p) >= sysctl_boost_task_threshold ||
+	     scale_demand(p->ravg.sum) >= sysctl_boost_task_threshold)) {
+		start_cpu = rd->mid_cap_orig_cpu == -1 ?
+			rd->max_cap_orig_cpu : rd->mid_cap_orig_cpu;
+	}
+
+	if (sysctl_prefer_silver && sysctl_sched_assist_enabled &&
+	    !is_heavy_ux_task(p) && prefer_silver_check_task_util(p))
+		start_cpu = rd->min_cap_orig_cpu;
+
+	if (sysctl_cpu_multi_thread && !is_heavy_load_task(p))
+		return rd->min_cap_orig_cpu;
+#endif
 
 	if (task_boost > TASK_BOOST_ON_MID) {
 		start_cpu = rd->max_cap_orig_cpu;
@@ -7203,7 +7260,12 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 	if (prefer_idle && prefer_high_cap)
 		target_capacity = 0;
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (fbt_env->strict_max || p->in_iowait ||
+	    (sysctl_cpu_multi_thread && !is_heavy_load_task(p)))
+#else
 	if (fbt_env->strict_max)
+#endif
 		most_spare_wake_cap = LONG_MIN;
 
 	/* Find start CPU based on boost value */
@@ -7243,6 +7305,19 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 			if (!cpu_online(i) || cpu_isolated(i))
 				continue;
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+			if (sysctl_prefer_silver && sysctl_sched_assist_enabled &&
+			    !test_task_ux(p) && is_max_capacity_cpu(i)) {
+				if (prefer_silver_check_freq(start_cpu) &&
+				    (prefer_silver_check_task_util(p) ||
+				     prefer_silver_check_cpu_util(start_cpu)))
+					continue;
+			}
+
+			if (should_ux_task_skip_cpu(p, i))
+				continue;
+#endif
+
 			if (isolated_candidate == -1)
 				isolated_candidate = i;
 
@@ -7273,6 +7348,14 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 				most_spare_wake_cap = spare_wake_cap;
 				most_spare_cap_cpu = i;
 			}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+			else if (spare_wake_cap == most_spare_wake_cap &&
+				 sysctl_cpu_multi_thread && !is_heavy_load_task(p) &&
+				 cpu_rq(i)->nr_running <
+				 cpu_rq(most_spare_cap_cpu)->nr_running) {
+				most_spare_cap_cpu = i;
+			}
+#endif
 
 			if (per_task_boost(cpu_rq(i)->curr) ==
 					TASK_BOOST_STRICT_MAX)
@@ -7600,6 +7683,13 @@ static void find_best_target(struct sched_domain *sd, cpumask_t *cpus,
 					break;
 			}
 		}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+		if (sysctl_cpu_multi_thread && !is_heavy_load_task(p) &&
+		    next_group_higher_cap &&
+		    (best_idle_cpu != -1 || target_cpu != -1 ||
+		     most_spare_cap_cpu != -1))
+			break;
+#endif
 
 	} while (sg = sg->next, sg != start_sd->groups);
 
@@ -8070,6 +8160,10 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu,
 	if (sync && (need_idle || (is_rtg && curr_is_rtg)))
 		sync = 0;
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	ux_skip_sync_wakeup(p, &sync);
+#endif
+
 	if (sysctl_sched_sync_hint_enable && sync &&
 				bias_to_this_cpu(p, cpu, start_cpu)) {
 		best_energy_cpu = cpu;
@@ -8130,6 +8224,9 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu,
 				}
 			}
 		}
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+		set_ux_task_cpu_common_by_prio(p, &best_energy_cpu, true, false, 0);
+#endif
 		goto unlock;
 	}
 
@@ -8187,6 +8284,14 @@ unlock:
 		best_energy_cpu = prev_cpu;
 
 	rcu_read_unlock();
+
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (!fbt_env.fastpath)
+		set_ux_task_to_prefer_cpu(p, &best_energy_cpu);
+	if (sched_assist_scene(SA_SLIDE) && is_heavy_ux_task(p) &&
+	    ux_task_misfit(p, best_energy_cpu))
+		find_ux_task_cpu(p, &best_energy_cpu);
+#endif
 
 done:
 
@@ -8460,6 +8565,11 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	if (unlikely(se == pse))
 		return;
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (is_heavy_load_task(current))
+		return;
+#endif
+
 	/*
 	 * This is possible from callers such as attach_tasks(), in which we
 	 * unconditionally check_prempt_curr() after an enqueue (which may have
@@ -8502,6 +8612,12 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 	find_matching_se(&se, &pse);
 	update_curr(cfs_rq_of(se));
 	BUG_ON(!pse);
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	if (should_ux_preempt_wakeup(p, curr))
+		goto preempt;
+	else if (test_task_ux(curr))
+		return;
+#endif
 	if (wakeup_preempt_entity(se, pse) == 1) {
 		/*
 		 * Bias pick_next to pick the sched entity that is
@@ -8538,6 +8654,9 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
 	struct cfs_rq *cfs_rq = &rq->cfs;
 	struct sched_entity *se;
 	struct task_struct *p;
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	struct task_struct *pos;
+#endif
 	int new_tasks;
 
 again:
@@ -8592,6 +8711,9 @@ again:
 	} while (cfs_rq);
 
 	p = task_of(se);
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	pick_ux_thread(rq, &p, &se);
+#endif
 
 	/*
 	 * Since we haven't yet done put_prev_entity and if the selected task
@@ -8632,6 +8754,15 @@ simple:
 	} while (cfs_rq);
 
 	p = task_of(se);
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	pos = list_first_entry(&rq->cfs_tasks, typeof(*pos), se.group_node);
+	if (sysctl_cpu_multi_thread && is_heavy_load_task(pos) && p != pos) {
+		p = pos;
+		se = &p->se;
+	}
+	for_each_sched_entity(se)
+		set_next_entity(cfs_rq_of(se), se);
+#endif
 
 done: __maybe_unused;
 #ifdef CONFIG_SMP
@@ -9248,6 +9379,19 @@ redo:
 
 		if (!can_migrate_task(p, env))
 			goto next;
+
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+		if (sysctl_prefer_silver && sysctl_sched_assist_enabled &&
+		    !test_task_ux(p) && is_max_capacity_cpu(env->dst_cpu)) {
+			if (prefer_silver_check_freq(env->src_cpu) &&
+			    (prefer_silver_check_task_util(p) ||
+			     prefer_silver_check_cpu_util(env->src_cpu)))
+				goto next;
+		}
+
+		if (should_ux_task_skip_cpu(p, env->dst_cpu))
+			goto next;
+#endif
 
 		/*
 		 * Depending of the number of CPUs and tasks and the
@@ -13317,6 +13461,57 @@ static void walt_check_for_rotation(struct rq *src_rq)
 #else
 static inline void walt_check_for_rotation(struct rq *rq)
 {
+}
+#endif
+
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+bool ux_task_misfit(struct task_struct *p, int cpu)
+{
+	int num_mincpu = cpumask_weight(topology_core_cpumask(0));
+
+	if ((scale_demand(p->ravg.sum) >= sysctl_boost_task_threshold ||
+	     task_util(p) >= sysctl_boost_task_threshold) && cpu < num_mincpu)
+		return true;
+
+	return false;
+}
+#endif
+
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+#define TRIGGER_FREQ	1516800
+bool prefer_silver_check_freq(int cpu)
+{
+	unsigned int freq = 0;
+
+	freq = cpufreq_quick_get(cpu);
+	if (freq < TRIGGER_FREQ)
+		return true;
+
+	return false;
+}
+
+bool prefer_silver_check_task_util(struct task_struct *p)
+{
+	int cpu;
+	unsigned long thresh_load;
+	struct reciprocal_value spc_rdiv = reciprocal_value(100);
+
+	if (!p)
+		return false;
+
+	cpu = task_cpu(p);
+	thresh_load = capacity_orig_of(cpu) * sysctl_heavy_task_thresh;
+	if (task_util(p) < reciprocal_divide(thresh_load, spc_rdiv) ||
+	    scale_demand(p->ravg.sum) < reciprocal_divide(thresh_load, spc_rdiv))
+		return true;
+
+	return false;
+}
+
+bool prefer_silver_check_cpu_util(int cpu)
+{
+	return (capacity_orig_of(cpu) * sysctl_cpu_util_thresh) >
+		(cpu_util(cpu) * 100);
 }
 #endif
 
