@@ -3,6 +3,7 @@
 
 config OPLUS_FEATURE_SCHED_ASSIST
 	bool "sched_assist"
+	depends on SCHED_WALT
 	default n
 	help
 	  Enable the Oplus scheduler assist framework for UX-critical
