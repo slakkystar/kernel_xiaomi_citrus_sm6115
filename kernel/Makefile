@@ -45,6 +45,8 @@ CFLAGS_cfi.o = $(DISABLE_CFI_CLANG)
 CFLAGS_cfi.o = $(DISABLE_CFI_CLANG)
 
 obj-y += sched/
+obj-$(CONFIG_OPLUS_FEATURE_SCHED_ASSIST) += sched_assist/
+obj-$(CONFIG_OPLUS_FEATURE_SCHED_ASSIST) += special_opt/
 obj-y += locking/
 obj-y += power/
 obj-y += printk/

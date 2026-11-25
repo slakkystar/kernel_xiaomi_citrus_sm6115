@@ -277,6 +277,19 @@ static inline int sched_unisolate_cpu_unlocked(int cpu)
 }
 #endif
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+extern int sysctl_sched_assist_enabled;
+extern int sysctl_sched_assist_scene;
+extern int sysctl_cpu_multi_thread;
+extern int sysctl_slide_boost_enabled;
+extern int sysctl_input_boost_enabled;
+extern int sysctl_boost_task_threshold;
+extern int sysctl_prefer_silver;
+extern int sysctl_heavy_task_thresh;
+extern int sysctl_cpu_util_thresh;
+extern int sysctl_uxchain_v2;
+#endif /* CONFIG_OPLUS_FEATURE_SCHED_ASSIST */
+
 extern void scheduler_tick(void);
 
 #define	MAX_SCHEDULE_TIMEOUT		LONG_MAX
@@ -1520,6 +1533,19 @@ struct task_struct {
 	/* Used by LSM modules for access restriction: */
 	void				*security;
 #endif
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	int				ux_state;
+	atomic64_t			inherit_ux;
+	struct list_head		ux_entry;
+	int				ux_depth;
+	u64				enqueue_time;
+	u64				inherit_ux_start;
+	u64				sum_exec_baseline;
+	u64				total_exec;
+	int				ux_once;
+	u64				get_mmlock_ts;
+	int				get_mmlock;
+#endif /* CONFIG_OPLUS_FEATURE_SCHED_ASSIST */
 #ifdef CONFIG_ANDROID_SIMPLE_LMK
 	struct task_struct		*simple_lmk_next;
 #endif

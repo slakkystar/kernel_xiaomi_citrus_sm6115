@@ -1130,6 +1130,10 @@ struct rq {
 	struct cpuidle_state	*idle_state;
 	int			idle_state_idx;
 #endif
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	struct list_head	ux_thread_list;
+	raw_spinlock_t		ux_list_lock;
+#endif /* CONFIG_OPLUS_FEATURE_SCHED_ASSIST */
 };
 
 #ifdef CONFIG_FAIR_GROUP_SCHED
@@ -2156,10 +2160,16 @@ static inline unsigned long capacity_orig_of(int cpu)
 {
 	return cpu_rq(cpu)->cpu_capacity_orig;
 }
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+extern void sf_task_util_record(struct task_struct *p);
+#endif
 
 static inline unsigned long task_util(struct task_struct *p)
 {
 #ifdef CONFIG_SCHED_WALT
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	sf_task_util_record(p);
+#endif
 	return p->ravg.demand_scaled;
 #endif
 	return READ_ONCE(p->se.avg.util_avg);

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2020-2022 Oplus. All rights reserved.
+
+config OPLUS_FEATURE_SCHED_ASSIST
+	bool "sched_assist"
+	default n
+	help
+	  Enable the Oplus scheduler assist framework for UX-critical
+	  tasks. It tracks UX, render and top-app tasks, propagates UX
+	  state through binder and runqueue inheritance, applies wakeup
+	  preemption and execution-slice policy, and exposes debug
+	  controls through /proc/oplus_scheduler/sched_assist/ and the
+	  scene mask through /proc/sys/kernel/sched_assist_scene.
+
+	  This is the main switch for the sched_assist options. If
+	  unsure, say N.

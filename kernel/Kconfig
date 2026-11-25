@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# Oplus kernel feature configuration
+
+if OPLUS_KERNEL
+
+config OPLUS_SYSTEM_KERNEL_QCOM
+	bool "Qcom platform"
+	default y if ARCH_QCOM
+	default n
+	help
+	  Distinguish Qcom from other platforms so that Oplus kernel
+	  features can select the correct platform specific paths.
+
+source "kernel/sched_assist/Kconfig"
+
+endif # OPLUS_KERNEL

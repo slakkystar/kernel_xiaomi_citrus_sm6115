@@ -105,6 +105,9 @@
 #include <asm/tlbflush.h>
 
 #include <trace/events/sched.h>
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+#include <linux/sched_assist/sched_assist_fork.h>
+#endif
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/task.h>
@@ -1982,6 +1985,9 @@ static __latent_entropy struct task_struct *copy_process(
 #ifdef CONFIG_BCACHE
 	p->sequential_io	= 0;
 	p->sequential_io_avg	= 0;
+#endif
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+	init_task_ux_info(p);
 #endif
 
 	/* Perform scheduler related setup. Assign this task to a CPU. */

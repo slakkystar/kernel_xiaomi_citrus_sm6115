@@ -22,6 +22,10 @@
 
 struct rw_semaphore;
 
+#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
+#define PREEMPT_DISABLE_RWSEM 3000000
+#endif
+
 #ifdef CONFIG_RWSEM_GENERIC_SPINLOCK
 #include <linux/rwsem-spinlock.h> /* use a generic implementation */
 #define __RWSEM_INIT_COUNT(name)	.count = RWSEM_UNLOCKED_VALUE
