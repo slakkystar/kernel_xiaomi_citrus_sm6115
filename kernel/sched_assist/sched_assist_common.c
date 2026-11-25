@@ -198,7 +198,7 @@ static int entity_over(struct sched_entity *a, struct sched_entity *b)
 
 noinline int tracing_mark_write(const char *buf)
 {
-	trace_printk(buf);
+	trace_printk("%s", buf);
 	return 0;
 }
 
@@ -2420,12 +2420,12 @@ int get_st_group_id(struct task_struct *task)
 {
 #if IS_ENABLED(CONFIG_SCHED_TUNE)
 	const int subsys_id = schedtune_cgrp_id;
-	struct cgroup *grp;
+	struct cgroup_subsys_state *css;
 
 	rcu_read_lock();
-	grp = task_cgroup(task, subsys_id);
+	css = task_css(task, subsys_id);
 	rcu_read_unlock();
-	return grp->id;
+	return css ? css->id : -1;
 #else
 	return 0;
 #endif
