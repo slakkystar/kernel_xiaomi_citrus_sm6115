@@ -83,6 +83,7 @@ extern void android_vh_binder_transaction_received_handler(struct binder_transac
 extern void android_vh_alloc_oem_binder_struct_handler(struct binder_transaction_data *tr,
 		struct binder_transaction *t, struct binder_proc *target_proc);
 #else
+extern const struct sched_class rt_sched_class;
 static inline void binder_set_inherit_ux(struct task_struct *thread_task, struct task_struct *from_task)
 {
 	if (from_task && test_set_inherit_ux(from_task)) {
@@ -111,7 +112,6 @@ static inline void binder_unset_inherit_ux(struct task_struct *thread_task)
 	}
 }
 #endif /* defined(CONFIG_OPLUS_FEATURE_ASYNC_BINDER_INHERIT_UX) */
-extern const struct sched_class rt_sched_class;
 static inline void binder_set_inherit_ux_listpick(struct task_struct *thread_task, struct task_struct *from_task)
 {
 	if (!test_task_ux(thread_task)) {
