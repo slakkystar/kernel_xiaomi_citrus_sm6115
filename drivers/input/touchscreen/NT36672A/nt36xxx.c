@@ -2572,15 +2572,14 @@ static int nvt_drm_notifier_callback(struct notifier_block *self, unsigned long 
 	if (evdata->data && ts) {
 		blank = evdata->data;
 		if (event == DRM_PANEL_EARLY_EVENT_BLANK) {
-			NVT_LOG("chenwenmin  DRM_PANEL_EARLY_EVENT_BLANK=%d\n", DRM_PANEL_EARLY_EVENT_BLANK);
-			if (*blank == DRM_PANEL_BLANK_POWERDOWN) {
-				NVT_LOG("chenwenmin  DRM_PANEL_BLANK_POWERDOWN=%d\n", DRM_PANEL_BLANK_POWERDOWN);
+			NVT_LOG("chenwenmin  DRM_PANEL_EARLY_EVENT_BLANK=%d, *blank=%d\n", DRM_PANEL_EARLY_EVENT_BLANK, *blank);
+			if (*blank == DRM_PANEL_BLANK_POWERDOWN || *blank == DRM_PANEL_BLANK_LP) {
 				NVT_LOG("chenwenmin tp suspend event=%lu, *blank=%d\n", event, *blank);
 				flush_workqueue(ts->event_wq);
 				nvt_ts_suspend(&ts->client->dev);
 			}
 		} else if (event == DRM_PANEL_EVENT_BLANK) {
-			NVT_LOG("chenwenmin  DRM_PANEL_EVENT_BLANK=%d\n", DRM_PANEL_EVENT_BLANK);
+			NVT_LOG("chenwenmin  DRM_PANEL_EVENT_BLANK=%d, *blank=%d\n", DRM_PANEL_EVENT_BLANK, *blank);
 			if (*blank == DRM_PANEL_BLANK_UNBLANK) {
 				NVT_LOG("chenwenmin  DRM_PANEL_BLANK_UNBLANK=%d\n", DRM_PANEL_BLANK_UNBLANK);
 				NVT_LOG("chenwenmin tp resume event=%lu, *blank=%d\n", event, *blank);
