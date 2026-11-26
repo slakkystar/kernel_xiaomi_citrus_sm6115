@@ -408,7 +408,7 @@ static int bpf_stats_handler(struct ctl_table *table, int write,
 #endif
 
 #ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
-int sysctl_sched_assist_enabled = 1;
+int sysctl_sched_assist_enabled = 0;
 int sysctl_sched_assist_scene = 0;
 int sysctl_prefer_silver = 0;
 int sysctl_heavy_task_thresh = 50;
