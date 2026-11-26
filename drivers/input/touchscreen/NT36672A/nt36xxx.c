@@ -2400,6 +2400,9 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	bTouchIsAwake = 0;
 
+	//---set xdata index to EVENT BUF ADDR---
+	nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HOST_CMD);
+
 #if WAKEUP_GESTURE
 	//---write command to enter "wakeup gesture mode"---
 	if (nvt_gesture_flag == true) {
