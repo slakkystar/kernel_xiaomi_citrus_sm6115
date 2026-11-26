@@ -41,7 +41,10 @@
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
 #if WAKEUP_GESTURE
-bool nvt_gesture_flag;
+bool nvt_gesture_flag = true;
+static bool nvt_gesture_debug;
+module_param(nvt_gesture_debug, bool, 0644);
+MODULE_PARM_DESC(nvt_gesture_debug, "Dump raw packets received in wakeup-gesture mode");
 #ifdef CONFIG_TOUCHSCREEN_COMMON
 #include <linux/input/tp_common.h>
 #endif
@@ -1492,6 +1495,13 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 		NVT_ERR("CTP_SPI_READ failed.(%d)\n", ret);
 		goto XFER_ERROR;
 	}
+#if WAKEUP_GESTURE
+	if (nvt_gesture_debug && bTouchIsAwake == 0) {
+		NVT_LOG("gesture pkt: %02X %02X %02X %02X %02X %02X\n",
+			point_data[0], point_data[1], point_data[2],
+			point_data[3], point_data[4], point_data[5]);
+	}
+#endif
 /*
 	//--- dump SPI buf ---
 	for (i = 0; i < 10; i++) {
@@ -2374,6 +2384,7 @@ return:
 static int32_t nvt_ts_suspend(struct device *dev)
 {
 	uint8_t buf[4] = {0};
+	int32_t ret = 0;
 #if MT_PROTOCOL_B
 	uint32_t i = 0;
 #endif
@@ -2401,7 +2412,8 @@ static int32_t nvt_ts_suspend(struct device *dev)
 	bTouchIsAwake = 0;
 
 	//---set xdata index to EVENT BUF ADDR---
-	nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HOST_CMD);
+	ret = nvt_set_page(ts->mmap->EVENT_BUF_ADDR | EVENT_MAP_HOST_CMD);
+	NVT_LOG("set event page ret=%d\n", ret);
 
 #if WAKEUP_GESTURE
 	//---write command to enter "wakeup gesture mode"---
@@ -2410,7 +2422,8 @@ static int32_t nvt_ts_suspend(struct device *dev)
      	  	NVT_LOG("Failed to enable regulator");
 	buf[0] = EVENT_MAP_HOST_CMD;
 	buf[1] = 0x13;
-	CTP_SPI_WRITE(ts->client, buf, 2);
+	ret = CTP_SPI_WRITE(ts->client, buf, 2);
+	NVT_LOG("host cmd 0x13 ret=%d\n", ret);
 
 	enable_irq_wake(ts->client->irq);
 
