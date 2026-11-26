@@ -45,6 +45,10 @@ bool nvt_gesture_flag = true;
 static bool nvt_gesture_debug;
 module_param(nvt_gesture_debug, bool, 0644);
 MODULE_PARM_DESC(nvt_gesture_debug, "Dump raw packets received in wakeup-gesture mode");
+
+static bool nvt_raw_gesture_test;
+module_param(nvt_raw_gesture_test, bool, 0644);
+MODULE_PARM_DESC(nvt_raw_gesture_test, "Keep panel in normal mode at screen-off and dump raw packets (feasibility test)");
 #ifdef CONFIG_TOUCHSCREEN_COMMON
 #include <linux/input/tp_common.h>
 #endif
@@ -1448,6 +1452,38 @@ int32_t nvt_check_palm(uint8_t input_id, uint8_t *data)
 }
 
 #define POINT_DATA_LEN 65
+
+#if WAKEUP_GESTURE
+static void nvt_raw_gesture_dump(const uint8_t *point_data)
+{
+	int i;
+	uint32_t position;
+	uint8_t id, state;
+	uint32_t x, y, w, p;
+
+	print_hex_dump(KERN_INFO, "raw pkt: ", DUMP_PREFIX_OFFSET, 16, 1,
+		       point_data, POINT_DATA_LEN + 1, false);
+
+	for (i = 0; i < ts->max_touch_num; i++) {
+		position = 1 + 6 * i;
+		if (position + 5 >= POINT_DATA_LEN + 1)
+			break;
+		id = (uint8_t)(point_data[position] >> 3);
+		state = point_data[position] & 0x07;
+		x = (uint32_t)(point_data[position + 1] << 4) +
+		    (uint32_t)(point_data[position + 3] >> 4);
+		y = (uint32_t)(point_data[position + 2] << 4) +
+		    (uint32_t)(point_data[position + 3] & 0x0F);
+		w = point_data[position + 4];
+		p = point_data[position + 5];
+		if (i < 2)
+			p += (uint32_t)(point_data[i + 63] << 8);
+		NVT_LOG("raw pt[%d]: id=%u state=%u x=%u y=%u w=%u p=%u\n",
+			i, id, state, x, y, w, p);
+	}
+}
+#endif
+
 /*******************************************************
 Description:
 	Novatek touchscreen work function.
@@ -1501,6 +1537,8 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 			point_data[0], point_data[1], point_data[2],
 			point_data[3], point_data[4], point_data[5]);
 	}
+	if (nvt_raw_gesture_test && bTouchIsAwake == 0)
+		nvt_raw_gesture_dump(point_data);
 #endif
 /*
 	//--- dump SPI buf ---
@@ -2417,13 +2455,17 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 #if WAKEUP_GESTURE
 	//---write command to enter "wakeup gesture mode"---
-	if (nvt_gesture_flag == true) {
+	if (nvt_gesture_flag == true || nvt_raw_gesture_test) {
     	    if (nvt_ts_enable_regulator(true) < 0) 
      	  	NVT_LOG("Failed to enable regulator");
-	buf[0] = EVENT_MAP_HOST_CMD;
-	buf[1] = 0x13;
-	ret = CTP_SPI_WRITE(ts->client, buf, 2);
-	NVT_LOG("host cmd 0x13 ret=%d\n", ret);
+	if (nvt_raw_gesture_test) {
+		NVT_LOG("raw gesture test: skip 0x13, keep normal mode\n");
+	} else {
+		buf[0] = EVENT_MAP_HOST_CMD;
+		buf[1] = 0x13;
+		ret = CTP_SPI_WRITE(ts->client, buf, 2);
+		NVT_LOG("host cmd 0x13 ret=%d\n", ret);
+	}
 
 	enable_irq_wake(ts->client->irq);
 
@@ -2476,6 +2518,8 @@ return:
 *******************************************************/
 static int32_t nvt_ts_resume(struct device *dev)
 {
+	int32_t ret = 0;
+
 	if (bTouchIsAwake) {
 		NVT_LOG("Touch is already resume\n");
 		return 0;
@@ -2494,6 +2538,9 @@ static int32_t nvt_ts_resume(struct device *dev)
 	} else {
 		nvt_check_fw_reset_state(RESET_STATE_REK);
 	}
+
+	ret = nvt_set_page(ts->mmap->EVENT_BUF_ADDR);
+	NVT_LOG("restore event page ret=%d\n", ret);
 
 #if !WAKEUP_GESTURE
 	nvt_irq_enable(true);
