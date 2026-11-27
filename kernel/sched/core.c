@@ -7570,17 +7570,6 @@ DECLARE_PER_CPU(cpumask_var_t, select_idle_mask);
 DECLARE_PER_CPU(unsigned long *, prioritized_task_mask);
 DECLARE_PER_CPU(int, prioritized_task_nr);
 
-#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
-static void set_random_uxchain_v2(void)
-{
-	int rand = 1;
-
-	get_random_bytes(&rand, 1);
-	printk("get_random_bytes %d\n", rand);
-	sysctl_uxchain_v2 = rand % 2;
-}
-#endif
-
 void __init sched_init(void)
 {
 	int i, j;
@@ -7760,10 +7749,6 @@ void __init sched_init(void)
 	psi_init();
 
 	init_uclamp();
-
-#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
-	set_random_uxchain_v2();
-#endif
 
 	scheduler_running = 1;
 }
