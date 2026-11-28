@@ -8654,9 +8654,6 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev, struct rq_flags *rf
 	struct cfs_rq *cfs_rq = &rq->cfs;
 	struct sched_entity *se;
 	struct task_struct *p;
-#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
-	struct task_struct *pos;
-#endif
 	int new_tasks;
 
 again:
@@ -8754,15 +8751,6 @@ simple:
 	} while (cfs_rq);
 
 	p = task_of(se);
-#ifdef CONFIG_OPLUS_FEATURE_SCHED_ASSIST
-	pos = list_first_entry(&rq->cfs_tasks, typeof(*pos), se.group_node);
-	if (sysctl_cpu_multi_thread && is_heavy_load_task(pos) && p != pos) {
-		p = pos;
-		se = &p->se;
-	}
-	for_each_sched_entity(se)
-		set_next_entity(cfs_rq_of(se), se);
-#endif
 
 done: __maybe_unused;
 #ifdef CONFIG_SMP
